@@ -16,6 +16,7 @@
 
 package edu.unc.lib.dl.services.camel.solr;
 
+import static edu.unc.lib.dl.services.camel.cdrEvents.CdrEventMessageHelpers.populateList;
 import static edu.unc.lib.dl.services.camel.util.CdrFcrepoHeaders.CdrUpdateAction;
 
 import java.util.ArrayList;
@@ -119,25 +120,6 @@ public class CdrEventToSolrUpdateProcessor implements Processor {
 
         messageSender.sendIndexingOperation(userid, PIDs.get(targetId), childPids,
                 indexingActionType);
-    }
-
-    private List<String> populateList(String field, Element contentBody) {
-        List<Element> children = contentBody.getChildren(field, JDOMNamespaceUtil.CDR_MESSAGE_NS);
-
-        if (children == null || children.size() == 0) {
-            return null;
-        }
-
-        List<String> list = new ArrayList<>();
-        for (Object node : children) {
-            Element element = (Element) node;
-            for (Object pid : element.getChildren()) {
-                Element pidElement = (Element) pid;
-                list.add(pidElement.getTextTrim());
-            }
-        }
-
-        return list;
     }
 
     public void setIndexingMessageSender(IndexingMessageSender indexingMessageSender) {

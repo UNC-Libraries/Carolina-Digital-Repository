@@ -185,7 +185,7 @@
     <bean id="cdrEventProcessor" class="edu.unc.lib.dl.services.camel.cdrEvents.CdrEventProcessor">
     </bean>
 
-    <bean id="binaryEnhancementProcessor" class="edu.unc.lib.dl.services.camel.BinaryEnhancementProcessor">
+    <bean id="binaryEnhancementProcessor" class="edu.unc.lib.dl.services.camel.enhancements.EnhancementRequestProcessor">
     </bean>
     
     <bean id="binaryMetadataProcessor" class="edu.unc.lib.dl.services.camel.BinaryMetadataProcessor">

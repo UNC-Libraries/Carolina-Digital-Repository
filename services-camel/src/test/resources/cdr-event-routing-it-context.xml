@@ -35,7 +35,7 @@
         <property name="defaultDestinationName" value="${cdr.stream}" />
         <property name="pubSubDomain" value="false" />
     </bean>
-
+    
     <bean id="operationsMessageSender" class="edu.unc.lib.dl.services.OperationsMessageSender">
         <property name="jmsTemplate" ref="cdrEventsJmsTemplate" />
     </bean>
@@ -47,6 +47,16 @@
 
     <bean id="indexingMessageSender" parent="abstractMessageSender"
         class="edu.unc.lib.dl.services.IndexingMessageSender">
+    </bean>
+    
+    <bean id="runEnhJmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <property name="connectionFactory" ref="jmsFactory" />
+        <property name="defaultDestinationName" value="${cdr.enhancement.stream}" />
+        <property name="pubSubDomain" value="false" />
+    </bean>
+    
+    <bean id="runEnhMessageSender" class="edu.unc.lib.dl.services.MessageSender">
+        <property name="jmsTemplate" ref="runEnhJmsTemplate" />
     </bean>
 
     <bean id="cdrEventProcessor"
@@ -61,6 +71,20 @@
     <bean id="solrUpdateProcessor"
         class="edu.unc.lib.dl.services.camel.solrUpdate.SolrUpdateProcessor">
     </bean>
+    
+    <bean id="addEventProcessor"
+        class="edu.unc.lib.dl.services.camel.cdrEvents.AddEventProcessor">
+        <property name="messageSender" ref="runEnhMessageSender" />
+    </bean>
+    
+    <bean id="enhancementRequestProcessor" class="edu.unc.lib.dl.services.camel.enhancements.EnhancementRequestProcessor">
+        <property name="messageSender" ref="runEnhMessageSender" />
+        <property name="repositoryObjectLoader" ref="repositoryObjectLoader" />
+    </bean>
+
+    <bean id="binaryMetadataProcessor" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="edu.unc.lib.dl.services.camel.BinaryMetadataProcessor" />
+    </bean>
 
     <camel:camelContext id="cdrServiceCdrEvents">
         <camel:package>edu.unc.lib.dl.services.camel.cdrEvents</camel:package>
@@ -68,6 +92,10 @@
 
     <camel:camelContext id="cdrServiceSolrUpdate">
         <camel:package>edu.unc.lib.dl.services.camel.solrUpdate</camel:package>
+    </camel:camelContext>
+  
+  	<camel:camelContext id="cdrEnhancementRoute">
+        <camel:package>edu.unc.lib.dl.services.camel.enhancements</camel:package>
     </camel:camelContext>
   
 </beans>

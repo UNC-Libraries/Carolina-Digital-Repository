@@ -26,18 +26,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.InputStream;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.vocabulary.RDF;
 import org.junit.Before;
 import org.junit.Rule;
@@ -122,7 +117,7 @@ public class BinaryMetadataProcessorTest {
         resc.addProperty(Ebucore.hasMimeType, MIMETYPE);
         resc.addProperty(Premis.hasMessageDigest, CHECKSUM_PREFIX + CHECKSUM);
 
-        setMessageBody(model);
+        when(binaryObject.getResource()).thenReturn(resc);
 
         processor.process(exchange);
 
@@ -138,7 +133,7 @@ public class BinaryMetadataProcessorTest {
         Resource resc = model.createResource(RESC_ID);
         resc.addProperty(RDF.type, createResource(Fcrepo4Repository.Resource.getURI()));
 
-        setMessageBody(model);
+        when(binaryObject.getResource()).thenReturn(resc);
 
         processor.process(exchange);
 
@@ -156,18 +151,10 @@ public class BinaryMetadataProcessorTest {
         resc.addProperty(Ebucore.hasMimeType, MIMETYPE);
         resc.addProperty(Premis.hasMessageDigest, CHECKSUM_PREFIX + CHECKSUM);
 
-        setMessageBody(model);
+        when(binaryObject.getResource()).thenReturn(resc);
 
         processor.process(exchange);
 
         verify(message, never()).setHeader(eq(CdrBinaryPath), any());
-    }
-
-    private void setMessageBody(Model model) throws Exception {
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-            RDFDataMgr.write(bos, model, RDFFormat.TURTLE_PRETTY);
-            when(message.getBody(eq(InputStream.class)))
-                    .thenReturn(new ByteArrayInputStream(bos.toByteArray()));
-        }
     }
 }

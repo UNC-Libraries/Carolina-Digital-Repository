@@ -16,6 +16,7 @@
 
 package edu.unc.lib.dl.services.camel.solr;
 
+import static edu.unc.lib.dl.services.camel.enhancements.EnhancementRequestProcessor.FCREPO_RESOURCE_TYPE;
 import static org.fcrepo.camel.FcrepoHeaders.FCREPO_URI;
 
 import java.util.concurrent.TimeUnit;
@@ -31,6 +32,9 @@ import edu.unc.lib.dl.data.ingest.solr.indexing.DocumentIndexingPackage;
 import edu.unc.lib.dl.data.ingest.solr.indexing.DocumentIndexingPackageFactory;
 import edu.unc.lib.dl.data.ingest.solr.indexing.DocumentIndexingPipeline;
 import edu.unc.lib.dl.data.ingest.solr.indexing.SolrUpdateDriver;
+import edu.unc.lib.dl.fcrepo4.PIDs;
+import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.rdf.Fcrepo4Repository;
 import edu.unc.lib.dl.util.IndexingActionType;
 
 /**
@@ -60,15 +64,24 @@ public class SolrIngestProcessor implements Processor {
     @Override
     public void process(Exchange exchange) throws Exception {
         final Message in = exchange.getIn();
-        String fcrepoBinaryUri = (String) in.getHeader(FCREPO_URI);
+        String fcrepoUri = (String) in.getHeader(FCREPO_URI);
+
+        PID targetPid = PIDs.get(fcrepoUri);
+        String resourceTypes = (String) in.getHeader(FCREPO_RESOURCE_TYPE);
+
+        // for binaries, need to index the file object which contains it
+        if (resourceTypes != null && resourceTypes.contains(Fcrepo4Repository.Binary.getURI())) {
+            targetPid = PIDs.get(targetPid.getId());
+        }
 
         int retryAttempt = 0;
 
         while (true) {
             try {
-                SolrUpdateRequest updateRequest = new SolrUpdateRequest(fcrepoBinaryUri, IndexingActionType.ADD);
+                SolrUpdateRequest updateRequest = new SolrUpdateRequest(
+                        targetPid.getRepositoryPath(), IndexingActionType.ADD);
 
-                DocumentIndexingPackage dip = factory.createDip(updateRequest.getPid());
+                DocumentIndexingPackage dip = factory.createDip(targetPid);
                 updateRequest.setDocumentIndexingPackage(dip);
 
                 pipeline.process(dip);
@@ -82,7 +95,7 @@ public class SolrIngestProcessor implements Processor {
 
                 retryAttempt++;
                 log.info("Unable to update solr for {}. Retrying, attempt {}",
-                        fcrepoBinaryUri, retryAttempt);
+                        fcrepoUri, retryAttempt);
                 TimeUnit.MILLISECONDS.sleep(retryDelay);
             }
         }

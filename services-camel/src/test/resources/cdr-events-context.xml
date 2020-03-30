@@ -21,6 +21,10 @@
         <constructor-arg value="edu.unc.lib.dl.services.camel.cdrEvents.CdrEventProcessor" />
     </bean>
     
+    <bean id="addEventProcessor" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="edu.unc.lib.dl.services.camel.cdrEvents.AddEventProcessor" />
+    </bean>
+    
     <camel:camelContext id="CdrServiceCdrEvents">
         <camel:package>edu.unc.lib.dl.services.camel.cdrEvents</camel:package>
     </camel:camelContext>

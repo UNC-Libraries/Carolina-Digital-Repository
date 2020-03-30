@@ -49,6 +49,9 @@ public class CdrEventRouter extends RouteBuilder {
     @BeanInject(value = "cdrEventToSolrUpdateProcessor")
     private CdrEventToSolrUpdateProcessor cdrEventToSolrUpdateProcessor;
 
+    @BeanInject(value = "addEventProcessor")
+    private AddEventProcessor addEventProcessor;
+
     private static final List<String> solrAllowedActions = asList(ADD.toString(), EDIT_ACCESS_CONTROL.toString(),
             EDIT_TYPE.toString(), MARK_FOR_DELETION.toString(), MOVE.toString(), REMOVE.toString(),
             RESTORE_FROM_DELETION.toString(), SET_AS_PRIMARY_OBJECT.toString(), UPDATE_DESCRIPTION.toString());
@@ -67,6 +70,10 @@ public class CdrEventRouter extends RouteBuilder {
             .routeId("CdrServiceCdrEvents")
             .log(LoggingLevel.DEBUG, "CDR Event Message received ${headers[" + CdrUpdateAction + "]}")
             .bean(cdrEventProcessor)
+            .choice()
+                .when(simple("${headers[" + CdrUpdateAction + "]} == '" + ADD.toString() + "'"))
+                    .bean(addEventProcessor)
+            .end()
             .filter(simple("${headers[" + CdrUpdateAction + "]} in '" + solrAllowed + "'"))
             .to("direct:solr-update");
 

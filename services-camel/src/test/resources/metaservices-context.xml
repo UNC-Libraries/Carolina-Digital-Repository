@@ -12,10 +12,6 @@
         http://www.springframework.org/schema/context/spring-context-4.3.xsd
         http://camel.apache.org/schema/spring
         http://camel.apache.org/schema/spring/camel-spring.xsd">
-    
-    <bean id="binaryMetadataProcessor" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="edu.unc.lib.dl.services.camel.BinaryMetadataProcessor" />
-    </bean>
 
     <camel:camelContext id="CdrMetaServicesRouter">
         <camel:package>edu.unc.lib.dl.services.camel.routing</camel:package>

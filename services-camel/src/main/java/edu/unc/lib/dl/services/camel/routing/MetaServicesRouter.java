@@ -15,40 +15,19 @@
  */
 package edu.unc.lib.dl.services.camel.routing;
 
-import static edu.unc.lib.dl.services.camel.util.EventTypes.EVENT_CREATE;
-
-import org.apache.camel.BeanInject;
-import org.apache.camel.PropertyInject;
 import org.apache.camel.builder.RouteBuilder;
 
-import edu.unc.lib.dl.services.camel.BinaryMetadataProcessor;
-
 /**
- * Meta router which sequences all service routes to run on events.
+ * Meta router which directs event messages to .
  *
  * @author bbpennel
  *
  */
 public class MetaServicesRouter extends RouteBuilder {
-    @BeanInject(value = "binaryMetadataProcessor")
-    private BinaryMetadataProcessor mdProcessor;
-
-    @PropertyInject(value = "cdr.enhancement.processingThreads")
-    private Integer enhancementThreads;
-
     @Override
     public void configure() throws Exception {
         from("{{fcrepo.stream}}")
             .routeId("CdrMetaServicesRouter")
-            .to("direct-vm:index.start")
-            .wireTap("direct:process.enhancement");
-
-        from("direct:process.enhancement")
-            .routeId("ProcessEnhancement")
-            .filter(simple("${headers[org.fcrepo.jms.eventType]} contains '" + EVENT_CREATE + "'"))
-                .log("Performing enhancements for ${headers[org.fcrepo.jms.identifier]}")
-                .delay(simple("{{cdr.enhancement.postIndexingDelay}}"))
-                .removeHeaders("CamelHttp*")
-                .to("direct-vm:enhancements.fedora");
+            .to("direct-vm:index.start");
     }
 }

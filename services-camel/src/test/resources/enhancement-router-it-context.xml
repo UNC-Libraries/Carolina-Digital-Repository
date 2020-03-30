@@ -24,6 +24,16 @@
         <property name="location" value="classpath:enhancement-router-it-config.properties"/>
     </bean>
     
+    <bean id="enhJmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <property name="connectionFactory" ref="jmsFactory" />
+        <property name="defaultDestinationName" value="${cdr.enhancement.stream}" />
+        <property name="pubSubDomain" value="false" />
+    </bean>
+    
+    <bean id="messageSender" class="edu.unc.lib.dl.services.MessageSender">
+        <property name="jmsTemplate" ref="enhJmsTemplate" />
+    </bean>
+    
     <bean id="solrIngestProcessor" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="edu.unc.lib.dl.services.camel.solr.SolrIngestProcessor" />
     </bean>
@@ -44,7 +54,10 @@
         <property name="repositoryObjectLoader" ref="repositoryObjectLoader" />
     </bean>
 
-    <bean id="binaryEnhancementProcessor" class="edu.unc.lib.dl.services.camel.BinaryEnhancementProcessor"/>
+    <bean id="enhancementRequestProcessor" class="edu.unc.lib.dl.services.camel.enhancements.EnhancementRequestProcessor">
+        <property name="messageSender" ref="messageSender" />
+        <property name="repositoryObjectLoader" ref="repositoryObjectLoader" />
+    </bean>
     
     <bean id="fulltextProcessor" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="edu.unc.lib.dl.services.camel.fulltext.FulltextProcessor" />

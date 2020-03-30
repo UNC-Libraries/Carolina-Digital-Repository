@@ -20,15 +20,12 @@ import static edu.unc.lib.dl.services.camel.util.CdrFcrepoHeaders.CdrBinaryMimeT
 import static edu.unc.lib.dl.services.camel.util.CdrFcrepoHeaders.CdrBinaryPath;
 import static org.fcrepo.camel.FcrepoHeaders.FCREPO_URI;
 
-import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Paths;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,9 +63,7 @@ public class BinaryMetadataProcessor implements Processor {
         }
 
         if (binObj.getContentUri() != null) {
-            Model model = ModelFactory.createDefaultModel();
-            model.read(in.getBody(InputStream.class), null, "Turtle");
-            Resource resc = model.getResource(binPid.getRepositoryPath());
+            Resource resc = binObj.getResource();
             String binaryMimeType = resc.getProperty(hasMimeType).getObject().toString();
 
             URI contentUri = binObj.getContentUri();

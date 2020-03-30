@@ -16,11 +16,7 @@
 package edu.unc.lib.dl.services.camel.enhancements;
 
 import static edu.unc.lib.dl.model.DatastreamPids.getTechnicalMetadataPid;
-import static edu.unc.lib.dl.rdf.Fcrepo4Repository.Binary;
-import static edu.unc.lib.dl.rdf.Fcrepo4Repository.Container;
-import static edu.unc.lib.dl.services.camel.JmsHeaderConstants.EVENT_TYPE;
-import static edu.unc.lib.dl.services.camel.JmsHeaderConstants.IDENTIFIER;
-import static edu.unc.lib.dl.services.camel.JmsHeaderConstants.RESOURCE_TYPE;
+import static edu.unc.lib.dl.services.RunEnhancementsMessageHelpers.makeEnhancementOperationBody;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -33,17 +29,14 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.BeanInject;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
-import org.apache.camel.Produce;
-import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.NotifyBuilder;
 import org.apache.commons.io.FileUtils;
+import org.jdom2.Document;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,13 +51,15 @@ import edu.unc.lib.dl.fcrepo4.FileObject;
 import edu.unc.lib.dl.fcrepo4.FolderObject;
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectFactory;
+import edu.unc.lib.dl.fcrepo4.WorkObject;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.persist.services.edit.UpdateDescriptionService;
-import edu.unc.lib.dl.rdf.Cdr;
+import edu.unc.lib.dl.services.MessageSender;
 import edu.unc.lib.dl.services.camel.BinaryMetadataProcessor;
 import edu.unc.lib.dl.services.camel.fulltext.FulltextProcessor;
 import edu.unc.lib.dl.services.camel.images.AddDerivativeProcessor;
 import edu.unc.lib.dl.services.camel.solr.SolrIngestProcessor;
+import edu.unc.lib.dl.test.RepositoryObjectTreeIndexer;
 import edu.unc.lib.dl.test.TestHelper;
 
 /**
@@ -82,6 +77,7 @@ import edu.unc.lib.dl.test.TestHelper;
 public class EnhancementRouterIT {
 
     private final static String FILE_CONTENT = "content";
+    private final static String AUTHOR = "theauthor";
 
     @Autowired
     private String baseAddress;
@@ -92,8 +88,8 @@ public class EnhancementRouterIT {
     @Autowired
     private CamelContext cdrEnhancements;
 
-    @Produce(uri = "direct-vm:enhancements.fedora")
-    private ProducerTemplate template;
+    @Autowired
+    private MessageSender messageSender;
 
     @BeanInject(value = "addSmallThumbnailProcessor")
     private AddDerivativeProcessor addSmallThumbnailProcessor;
@@ -115,12 +111,17 @@ public class EnhancementRouterIT {
 
     @Autowired
     private UpdateDescriptionService updateDescriptionService;
+    @Autowired
+    protected RepositoryObjectTreeIndexer treeIndexer;
 
     @Before
     public void init() throws Exception {
         initMocks(this);
 
         reset(solrIngestProcessor);
+        reset(addLargeThumbnailProcessor);
+        reset(addSmallThumbnailProcessor);
+        reset(addAccessCopyProcessor);
 
         TestHelper.setContentBase(baseAddress);
 
@@ -134,21 +135,22 @@ public class EnhancementRouterIT {
     }
 
     @Test
-    public void testFolderEnhancements() throws Exception {
+    public void testFolderEnhancements_NoChildren() throws Exception {
         FolderObject folderObject = repoObjectFactory.createFolderObject(null);
 
-        final Map<String, Object> headers = createEvent(folderObject.getPid(),
-                Cdr.Folder.getURI(), Container.getURI());
-        template.sendBodyAndHeaders("", headers);
+        treeIndexer.indexAll(baseAddress);
+
+        Document msgBody = makeEnhancementOperationBody(AUTHOR, folderObject.getPid(), null, false);
+        messageSender.sendMessage(msgBody);
 
         NotifyBuilder notify = new NotifyBuilder(cdrEnhancements)
-                .whenCompleted(3)
+                .whenCompleted(1)
                 .create();
 
-        boolean result = notify.matches(5l, TimeUnit.SECONDS);
+        boolean result = notify.matches(3l, TimeUnit.SECONDS);
         assertTrue("Processing message did not match expectations", result);
 
-        verify(solrIngestProcessor).process(any(Exchange.class));
+        verify(solrIngestProcessor, never()).process(any(Exchange.class));
     }
 
     @Test
@@ -159,22 +161,22 @@ public class EnhancementRouterIT {
         BinaryObject binObj = fileObj.addOriginalFile(originalPath.toUri(),
                 null, "image/png", null, null);
 
-        final Map<String, Object> headers = createEvent(binObj.getPid(), Binary.getURI());
-        template.sendBodyAndHeaders("", headers);
+        Document msgBody = makeEnhancementOperationBody(AUTHOR, binObj.getPid(), null, false);
+        messageSender.sendMessage(msgBody);
 
         // Separate exchanges when multicasting
         NotifyBuilder notify = new NotifyBuilder(cdrEnhancements)
-                .whenCompleted(2)
+                .whenCompleted(3)
                 .create();
 
-        boolean result = notify.matches(5l, TimeUnit.SECONDS);
+        boolean result = notify.matches(25l, TimeUnit.SECONDS);
         assertTrue("Processing message did not match expectations", result);
 
         verify(addSmallThumbnailProcessor).process(any(Exchange.class));
         verify(addLargeThumbnailProcessor).process(any(Exchange.class));
         verify(addAccessCopyProcessor).process(any(Exchange.class));
-        // Indexing not triggered on binary object
-        verify(solrIngestProcessor, never()).process(any(Exchange.class));
+        // Indexing the parent
+        verify(solrIngestProcessor).process(any(Exchange.class));
     }
 
     @Test
@@ -188,12 +190,12 @@ public class EnhancementRouterIT {
         String mdId = binObj.getPid().getRepositoryPath() + "/fcr:metadata";
         PID mdPid = PIDs.get(mdId);
 
-        final Map<String, Object> headers = createEvent(mdPid, Binary.getURI());
-        template.sendBodyAndHeaders("", headers);
+        Document msgBody = makeEnhancementOperationBody(AUTHOR, mdPid, null, false);
+        messageSender.sendMessage(msgBody);
 
         // Separate exchanges when multicasting
         NotifyBuilder notify = new NotifyBuilder(cdrEnhancements)
-                .whenCompleted(2)
+                .whenFailed(1)
                 .create();
 
         boolean result = notify.matches(5l, TimeUnit.SECONDS);
@@ -215,8 +217,8 @@ public class EnhancementRouterIT {
         BinaryObject binObj = fileObj.addBinary(fitsPid, techmdPath.toUri(),
                 "fits.xml", "text/xml", null, null, null);
 
-        final Map<String, Object> headers = createEvent(binObj.getPid(), Binary.getURI());
-        template.sendBodyAndHeaders("", headers);
+        Document msgBody = makeEnhancementOperationBody(AUTHOR, binObj.getPid(), null, false);
+        messageSender.sendMessage(msgBody);
 
         NotifyBuilder notify = new NotifyBuilder(cdrEnhancements)
                 .whenCompleted(1)
@@ -237,9 +239,8 @@ public class EnhancementRouterIT {
         BinaryObject descObj = updateDescriptionService.updateDescription(mock(AgentPrincipals.class),
                 fileObj.getPid(), new ByteArrayInputStream(FILE_CONTENT.getBytes()));
 
-        Map<String, Object> headers = createEvent(descObj.getPid(),
-                Cdr.FileObject.getURI(), Cdr.DescriptiveMetadata.getURI());
-        template.sendBodyAndHeaders("", headers);
+        Document msgBody = makeEnhancementOperationBody(AUTHOR, descObj.getPid(), null, false);
+        messageSender.sendMessage(msgBody);
 
         NotifyBuilder notify = new NotifyBuilder(cdrEnhancements)
                 .whenCompleted(1)
@@ -252,14 +253,33 @@ public class EnhancementRouterIT {
         verify(solrIngestProcessor, never()).process(any(Exchange.class));
     }
 
-    private static Map<String, Object> createEvent(PID pid, String... type) {
+    @Test
+    public void testTreeEnhancements() throws Exception {
+        FolderObject folderObject = repoObjectFactory.createFolderObject(null);
 
-        final Map<String, Object> headers = new HashMap<>();
-        headers.put(IDENTIFIER, pid.getRepositoryPath());
-        headers.put(EVENT_TYPE, "ResourceCreation");
-        headers.put("CamelFcrepoUri", pid.getRepositoryPath());
-        headers.put(RESOURCE_TYPE, String.join(",", type));
+        WorkObject workObj = folderObject.addWork();
+        Path originalPath = Files.createTempFile("file", ".png");
+        FileUtils.writeStringToFile(originalPath.toFile(), FILE_CONTENT, "UTF-8");
+        workObj.addDataFile(originalPath.toUri(),
+                null, "image/png", null, null);
 
-        return headers;
+        treeIndexer.indexAll(baseAddress);
+
+        Document msgBody = makeEnhancementOperationBody(AUTHOR, folderObject.getPid(), null, false);
+        messageSender.sendMessage(msgBody);
+
+        // Separate exchanges when multicasting
+        NotifyBuilder notify = new NotifyBuilder(cdrEnhancements)
+                .whenCompleted(8)
+                .create();
+
+        boolean result = notify.matches(40l, TimeUnit.SECONDS);
+        assertTrue("Processing message did not match expectations", result);
+
+        verify(addSmallThumbnailProcessor).process(any(Exchange.class));
+        verify(addLargeThumbnailProcessor).process(any(Exchange.class));
+        verify(addAccessCopyProcessor).process(any(Exchange.class));
+        // Indexing the parent
+        verify(solrIngestProcessor).process(any(Exchange.class));
     }
 }

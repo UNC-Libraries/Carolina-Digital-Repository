@@ -72,6 +72,11 @@
         <constructor-arg ref="queryModel" />
     </bean>
     
+    <bean id="treeIndexer" class="edu.unc.lib.dl.test.RepositoryObjectTreeIndexer">
+        <constructor-arg ref="queryModel" />
+        <constructor-arg ref="fcrepoClient" />
+    </bean>
+    
     <bean id="repositoryObjectCacheLoader" class="edu.unc.lib.dl.fcrepo4.RepositoryObjectCacheLoader">
         <property name="client" ref="fcrepoClient" />
         <property name="repositoryObjectDriver" ref="repositoryObjectDriver" />

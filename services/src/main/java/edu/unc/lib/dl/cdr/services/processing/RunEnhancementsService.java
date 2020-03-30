@@ -16,13 +16,11 @@
 package edu.unc.lib.dl.cdr.services.processing;
 
 import static edu.unc.lib.dl.model.DatastreamType.ORIGINAL_FILE;
-import static edu.unc.lib.dl.xml.JDOMNamespaceUtil.ATOM_NS;
-import static edu.unc.lib.dl.xml.JDOMNamespaceUtil.CDR_MESSAGE_NS;
+import static edu.unc.lib.dl.services.RunEnhancementsMessageHelpers.makeEnhancementOperationBody;
 
 import java.util.List;
 
 import org.jdom2.Document;
-import org.jdom2.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,27 +114,10 @@ public class RunEnhancementsService {
             return;
         }
 
-        String filePath = DatastreamPids.getOriginalFilePid(pid).toString();
+        PID filePid = DatastreamPids.getOriginalFilePid(pid);
         Document msg = makeEnhancementOperationBody(username,
-                filePath, originalDs.getMimetype(), force);
+                filePid, originalDs.getMimetype(), force);
         messageSender.sendMessage(msg);
-    }
-
-    private Document makeEnhancementOperationBody(String userid, String filePath, String mimeType, Boolean force) {
-        Document msg = new Document();
-        Element entry = new Element("entry", ATOM_NS);
-        entry.addContent(new Element("author", ATOM_NS)
-                .addContent(new Element("name", ATOM_NS).setText(userid)));
-        entry.addContent(new Element("pid", ATOM_NS).setText(filePath));
-        entry.addContent(new Element("mimeType", ATOM_NS).setText(mimeType));
-
-        if (force) {
-            Element paramForce = new Element("force", CDR_MESSAGE_NS);
-            paramForce.setText("true");
-        }
-        msg.addContent(entry);
-
-        return msg;
     }
 
     public void setRepositoryObjectLoader(RepositoryObjectLoader repositoryObjectLoader) {
