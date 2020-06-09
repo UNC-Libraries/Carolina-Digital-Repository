@@ -47,7 +47,7 @@ public class RepositoryPaths {
     private static PID rootPid;
 
     static {
-        setContentBase(System.getProperty("fcrepo.baseUri"));
+        setContentBase(System.getProperty("fcrepo.baseUri", "http://example.com/rest"));
     }
 
     private RepositoryPaths() {

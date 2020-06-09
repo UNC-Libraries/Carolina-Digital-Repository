@@ -39,7 +39,8 @@ import picocli.CommandLine.Option;
         TransformContentCommand.class,
         TransformDepositRecordsCommand.class,
         ViewDepositModelCommand.class,
-        SubmitDepositCommand.class
+        SubmitDepositCommand.class,
+        PullDetailsCommand.class
     })
 public class MigrationCLI implements Callable<Integer> {
     private static final Logger output = getLogger(OUTPUT_LOGGER);
