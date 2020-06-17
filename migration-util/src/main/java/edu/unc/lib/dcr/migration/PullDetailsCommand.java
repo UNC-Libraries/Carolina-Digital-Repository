@@ -25,6 +25,7 @@ import static edu.unc.lib.dcr.migration.fcrepo3.FoxmlDocumentHelpers.getObjectMo
 import static edu.unc.lib.dcr.migration.fcrepo3.FoxmlDocumentHelpers.listDatastreamVersions;
 import static edu.unc.lib.dl.xml.SecureXMLFactory.createSAXBuilder;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.FileWriter;
@@ -34,6 +35,8 @@ import java.io.Writer;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -41,6 +44,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpStatus;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -52,6 +56,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -109,9 +114,30 @@ public class PullDetailsCommand implements Callable<Integer> {
             description = "URI for the solr instance. Default localhost")
     protected String solrUri;
 
-    private static final String[] HEADERS = new String[] {
-        "id", "title", "deposited", "lastModified", "depositRec", "isDeleted", "numChildren", "sameTitle", "sameMd5"
+    @Option(names = {"-t", "--duplicate-titles"},
+            description = "Report the ids of other objects with the same title")
+    private boolean reportDupeTitles;
+
+    @Option(names = {"-m", "--duplicate-md5"},
+            description = "Report the ids of other files with the same md5")
+    private boolean reportDupeMd5;
+
+    @Option(names = {"-c", "--dangling-contains"},
+            description = "Report the ids of any containment references children that do not exist")
+    private boolean reportDanglingContains;
+
+    @Option(names = {"--has-ancestor"},
+            description = "Checks to see if each entry is a descedent of the provided id")
+    protected String hasAncestor;
+
+    private static final String[] DEFAULT_HEADERS = new String[] {
+        "id", "title", "deposited", "lastModified", "depositRec", "isDeleted", "numChildren"
     };
+
+    private static final String DANGLING_CONTAINS_HEADER = "danglingContains";
+    private static final String DUPE_TITLE_HEADER = "dupeTitles";
+    private static final String DUPE_MD5_HEADER = "dupeMd5";
+    private static final String HAS_ANCESTOR_HEADER = "hasAncestor";
 
     private CloseableHttpClient client;
     private SolrClient solr;
@@ -138,10 +164,24 @@ public class PullDetailsCommand implements Callable<Integer> {
 
         setupDependencies();
 
+        List<String> headerList = new ArrayList<>(Arrays.asList(DEFAULT_HEADERS));
+        if (reportDupeTitles) {
+            headerList.add(DUPE_TITLE_HEADER);
+        }
+        if (reportDupeMd5) {
+            headerList.add(DUPE_MD5_HEADER);
+        }
+        if (reportDanglingContains) {
+            headerList.add(DANGLING_CONTAINS_HEADER);
+        }
+        if (hasAncestor != null) {
+            headerList.add(HAS_ANCESTOR_HEADER);
+        }
+
         try (
                 Writer writer = getOutputWriter();
                 CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT
-                        .withHeader(HEADERS))
+                        .withHeader(headerList.toArray(new String[0])))
                 ) {
             Files.lines(idListPath, UTF_8).forEach(line -> {
                 String id = line.trim();
@@ -163,10 +203,11 @@ public class PullDetailsCommand implements Callable<Integer> {
         String updated;
         String depRecUri = "";
         String dataFileMd5 = null;
-        String md5Dupes = "";
         int numChildren;
-        String titleDupes = "";
+        List<Statement> contains;
         PID originalPid = PIDs.get(id);
+
+        List<Object> fields;
 
         URI requestUri = URI.create(URIUtil.join(fedoraUri, "objects",
                 id, "objectXML"));
@@ -191,7 +232,8 @@ public class PullDetailsCommand implements Callable<Integer> {
             if (bxc3Resc.hasProperty(FedoraProperty.label.getProperty())) {
                 title = bxc3Resc.getProperty(FedoraProperty.label.getProperty()).getString();
             }
-            numChildren = bxc3Resc.listProperties(Relationship.contains.getProperty()).toList().size();
+            contains = bxc3Resc.listProperties(Relationship.contains.getProperty()).toList();
+            numChildren = contains.size();
             if (bxc3Resc.hasProperty(FedoraProperty.state.getProperty())) {
                 deleted = bxc3Resc.hasLiteral(FedoraProperty.state.getProperty(), "Deleted");
             }
@@ -211,14 +253,15 @@ public class PullDetailsCommand implements Callable<Integer> {
         SolrQuery solrDetailsQuery = new SolrQuery();
         solrDetailsQuery.setQuery("id:" + escapedId);
         solrDetailsQuery.setRows(1);
-        solrDetailsQuery.setFields("id", "status", "title");
+        solrDetailsQuery.setFields("id", "status", "title", "ancestorIds");
         QueryResponse solrResp;
         try {
             solrResp = solr.query(solrDetailsQuery);
 
             List<BriefObjectMetadataBean> details = solrResp.getBeans(BriefObjectMetadataBean.class);
+            BriefObjectMetadata md = null;
             if (details.size() > 0) {
-                BriefObjectMetadata md = details.get(0);
+                md = details.get(0);
                 title = md.getTitle();
                 deleted = deleted || md.getStatus().contains("Deleted")
                         || md.getStatus().contains("Parent Deleted");
@@ -226,22 +269,61 @@ public class PullDetailsCommand implements Callable<Integer> {
                 output.warn("No solr record for {}", id);
             }
 
-            SolrQuery titleDupeQuery = new SolrQuery();
-            String escapedTitle = SolrSettings.escapeQueryChars(title);
-            titleDupeQuery.setQuery(String.format("-id:%s AND titleIndex:\"%s\"",
-                    escapedId, escapedTitle.toLowerCase()));
-            titleDupes = findPossibleDuplicates(titleDupeQuery);
+            fields = new ArrayList<>(Arrays.asList(id, title, created, updated, depRecUri, deleted, numChildren));
 
-            SolrQuery md5DupeQuery = new SolrQuery();
-            md5DupeQuery.setQuery(String.format("-id:%s AND datastream:\"DATA_FILE|*|%s|\"",
-                    escapedId, dataFileMd5));
-            md5Dupes = findPossibleDuplicates(md5DupeQuery);
+            reportDuplicateTitles(fields, title, escapedId);
+
+            reportDuplicateMd5s(fields, dataFileMd5, escapedId);
+
+            reportDanglingContains(fields, contains);
+
+            reportHasAncestor(fields, md);
         } catch (SolrServerException | IOException e) {
             output.error("Failed to query for {}", id, e);
             return;
         }
 
-        printer.printRecord(id, title, created, updated, depRecUri, deleted, numChildren, titleDupes, md5Dupes);
+        printer.printRecord(fields);
+    }
+
+    private void reportDuplicateTitles(List<Object> fields, String title, String escapedId)
+            throws SolrServerException, IOException {
+        if (reportDupeTitles) {
+            SolrQuery titleDupeQuery = new SolrQuery();
+            String escapedTitle = SolrSettings.escapeQueryChars(title);
+            titleDupeQuery.setQuery(String.format("-id:%s AND titleIndex:\"%s\"",
+                    escapedId, escapedTitle.toLowerCase()));
+            fields.add(findPossibleDuplicates(titleDupeQuery));
+        }
+    }
+
+    private void reportDuplicateMd5s(List<Object> fields, String dataFileMd5, String escapedId)
+            throws SolrServerException, IOException {
+        if (reportDupeMd5) {
+            SolrQuery md5DupeQuery = new SolrQuery();
+            md5DupeQuery.setQuery(String.format("-id:%s AND datastream:\"DATA_FILE|*|%s|\"",
+                    escapedId, dataFileMd5));
+            fields.add(findPossibleDuplicates(md5DupeQuery));
+        }
+    }
+
+    private void reportDanglingContains(List<Object> fields, List<Statement> contains) throws IOException {
+        if (reportDanglingContains) {
+            List<String> danglers = new ArrayList<>();
+
+            for (Statement containsStmt : contains) {
+                String id = substringAfterLast(containsStmt.getResource().getURI(), "/");
+                URI existsUri = URI.create(URIUtil.join(fedoraUri, "objects", id));
+                HttpGet existsGet = new HttpGet(existsUri);
+                try (CloseableHttpResponse resp = client.execute(existsGet)) {
+                    if (resp.getStatusLine().getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+                        danglers.add(id);
+                    }
+                }
+            }
+
+            fields.add(String.join(",", danglers));
+        }
     }
 
     private String findPossibleDuplicates(SolrQuery dupeQuery) throws SolrServerException, IOException {
@@ -257,6 +339,12 @@ public class PullDetailsCommand implements Callable<Integer> {
                     .collect(Collectors.joining(","));
         } else {
             return "";
+        }
+    }
+
+    private void reportHasAncestor(List<Object> fields, BriefObjectMetadata md) {
+        if (hasAncestor != null && md != null) {
+            fields.add(md.getAncestorIds().contains(hasAncestor));
         }
     }
 
