@@ -15,7 +15,6 @@
  */
 package edu.unc.lib.dl.acl.filter;
 
-import static edu.unc.lib.dl.acl.util.RemoteUserUtil.getRemoteUser;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 import java.io.IOException;
@@ -46,7 +45,7 @@ public class RequireLoginFilter extends OncePerRequestFilter {
     public void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        String user = getRemoteUser(request);
+        String user = request.getRemoteUser();
         if (isBlank(user)) {
             if (forwardRequest) {
                 RequestDispatcher dispatcher = request.getRequestDispatcher(notLoggedInUrl);

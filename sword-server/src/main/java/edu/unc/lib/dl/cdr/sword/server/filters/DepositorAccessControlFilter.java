@@ -15,8 +15,6 @@
  */
 package edu.unc.lib.dl.cdr.sword.server.filters;
 
-import static edu.unc.lib.dl.acl.util.RemoteUserUtil.getRemoteUser;
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.slf4j.Logger;
@@ -52,7 +50,7 @@ public class DepositorAccessControlFilter extends StoreUserAccessControlFilter {
     }
 
     protected AccessGroupSet getDepositorGroups(HttpServletRequest request) {
-        String user = getRemoteUser(request);
+        String user = request.getRemoteUser();
         log.debug("SWORD depositor user {} logged in", user);
         AccessGroupSet accessGroups = new AccessGroupSet();
         accessGroups.addAccessGroup(AccessPrincipalConstants.PUBLIC_PRINC);

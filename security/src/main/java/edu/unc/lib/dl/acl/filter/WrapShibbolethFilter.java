@@ -29,13 +29,14 @@ import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Filter which enables shibboleth header spoofing for testing purposes
+ * Filter which wraps the request to provide access to shibboleth authentication properties,
+ * which may be from spoofed sources if enabled for testing purposes.
  *
  * @author bbpennel
  *
  */
-public class SpoofShibbolethFilter extends OncePerRequestFilter implements ServletContextAware {
-    private static final Logger log = LoggerFactory.getLogger(SpoofShibbolethFilter.class);
+public class WrapShibbolethFilter extends OncePerRequestFilter implements ServletContextAware {
+    private static final Logger log = LoggerFactory.getLogger(WrapShibbolethFilter.class);
 
     private boolean spoofEnabled = false;
     private String spoofEmailSuffix = "@localhost";
@@ -53,7 +54,7 @@ public class SpoofShibbolethFilter extends OncePerRequestFilter implements Servl
         if (spoofEnabled) {
             filterChain.doFilter(new SpoofShibbolethRequestWrapper(request, spoofEmailSuffix), response);
         } else {
-            filterChain.doFilter(request, response);
+            filterChain.doFilter(new ProxiedUserRequestWrapper(request), response);
         }
     }
 

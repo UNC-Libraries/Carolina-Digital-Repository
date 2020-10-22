@@ -117,7 +117,7 @@
         <property name="requireViewAdmin" value="false" />
     </bean>
     
-    <bean name="spoofShibbolethFilter" class="edu.unc.lib.dl.acl.filter.SpoofShibbolethFilter">
+    <bean name="wrapShibbolethFilter" class="edu.unc.lib.dl.acl.filter.WrapShibbolethFilter">
         <property name="spoofEnabled" value="${spoofing.enabled:false}" />
         <property name="spoofEmailSuffix" value="${spoofing.emailSuffix:@localhost}" />
     </bean>

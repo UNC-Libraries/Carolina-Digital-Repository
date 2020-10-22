@@ -17,7 +17,6 @@ package edu.unc.lib.dl.acl.filter;
 
 import static edu.unc.lib.dl.acl.util.AccessPrincipalConstants.AUTHENTICATED_PRINC;
 import static edu.unc.lib.dl.acl.util.AccessPrincipalConstants.PUBLIC_PRINC;
-import static edu.unc.lib.dl.acl.util.RemoteUserUtil.getRemoteUser;
 import static edu.unc.lib.dl.httpclient.HttpClientUtil.FORWARDED_MAIL_HEADER;
 
 import java.io.IOException;
@@ -71,7 +70,7 @@ public class StoreUserAccessControlFilter extends OncePerRequestFilter implement
 
     protected void storeUserGroupData(HttpServletRequest request) {
         try {
-            GroupsThreadStore.storeUsername(getRemoteUser(request));
+            GroupsThreadStore.storeUsername(request.getRemoteUser());
 
             String email = getEmailAddress(request);
             GroupsThreadStore.storeEmail(email);

@@ -25,11 +25,11 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
 
 /**
  * RequestWrapper which pulls shibboleth authentication spoofing cookies from the
@@ -40,12 +40,12 @@ import javax.servlet.http.HttpServletRequestWrapper;
  * @author bbpennel
  *
  */
-public class SpoofShibbolethRequestWrapper extends HttpServletRequestWrapper {
+public class SpoofShibbolethRequestWrapper extends ProxiedUserRequestWrapper {
 
     private final static String SPOOF_COOKIE_PREFIX = "AUTHENTICATION_SPOOFING-";
 
     private String spoofEmailSuffix;
-    private HashMap<String, String> values;
+    private Map<String, String> values;
 
     private HttpServletRequest request;
 
