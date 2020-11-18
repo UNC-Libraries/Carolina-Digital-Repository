@@ -186,7 +186,7 @@
             <artifactId>fcrepo-http-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.kstyrc</groupId>
+            <groupId>it.ozimov</groupId>
             <artifactId>embedded-redis</artifactId>
         </dependency>
     </dependencies>
