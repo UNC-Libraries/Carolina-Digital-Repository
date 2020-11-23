@@ -128,12 +128,18 @@ public class TransformContentCommand implements Callable<Integer> {
                 return result;
             }
 
-            if (options.getDepositInto() != null) {
-                if (result != 0) {
-                    output.info("Encountered issues during transformation, skipping deposit submission");
-                    return result;
-                }
+            if (result != 0) {
+                output.info("");
+                output.info("###############################################");
+                output.info("# ENCOUNTERED ERRORS DURING TRANSFORMATION    #");
+                output.info("###############################################");
+                output.info("");
+                output.info("Check logs for details. Deposit shall not be submitted or processed further.");
+                return result;
 
+            }
+
+            if (options.getDepositInto() != null) {
                 PID destinationPid = PIDs.get(options.getDepositInto());
 
                 try (PreconstructedDepositSubmissionService depositService =
