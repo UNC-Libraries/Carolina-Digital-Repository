@@ -17,10 +17,17 @@ package edu.unc.lib.deposit.validate;
 
 import java.io.File;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
@@ -30,6 +37,7 @@ import com.philvarner.clamavj.ClamScan;
 import com.philvarner.clamavj.ScanResult;
 
 import edu.unc.lib.deposit.work.AbstractDepositJob;
+import edu.unc.lib.deposit.work.JobInterruptedException;
 import edu.unc.lib.dl.event.PremisEventBuilder;
 import edu.unc.lib.dl.event.PremisLogger;
 import edu.unc.lib.dl.fcrepo4.PIDs;
@@ -51,6 +59,8 @@ public class VirusScanJob extends AbstractDepositJob {
 
     private ClamScan clamScan;
 
+    private ExecutorService executorService;
+
     public VirusScanJob() {
         super();
     }
@@ -61,6 +71,10 @@ public class VirusScanJob extends AbstractDepositJob {
 
     public void setClamScan(ClamScan clamScan) {
         this.clamScan = clamScan;
+    }
+
+    public void setExecutorService(ExecutorService executorService) {
+        this.executorService = executorService;
     }
 
     public VirusScanJob(String uuid, String depositUUID) {
@@ -77,51 +91,85 @@ public class VirusScanJob extends AbstractDepositJob {
         List<Entry<PID, String>> hrefs = getPropertyPairList(model, CdrDeposit.stagingLocation);
 
         setTotalClicks(hrefs.size());
-        int scannedObjects = 0;
+        AtomicInteger scannedObjects = new AtomicInteger();
 
-        for (Entry<PID, String> href : hrefs) {
-            interruptJobIfStopped();
+        Collection<Future<?>> futures = new ArrayList<>();
+        AtomicBoolean isInterrupted = new AtomicBoolean();
 
-            PID objPid = href.getKey();
+        try {
+            for (Entry<PID, String> href : hrefs) {
+                interruptJobIfStopped();
 
-            if (isObjectCompleted(objPid)) {
-                scannedObjects += 1;
-                addClicks(1);
-                continue;
-            }
+                PID objPid = href.getKey();
 
-            URI manifestURI = URI.create(href.getValue());
-            File file = new File(manifestURI);
-
-            ScanResult result = clamScan.scan(file);
-
-            switch (result.getStatus()) {
-                case FAILED:
-                    failures.put(manifestURI.toString(), result.getSignature());
-                    break;
-                case ERROR:
-                    throw new Error(
-                            "Virus checks are producing errors: " +
-                            ((result.getException() == null) ? result.getResult() :
-                                    result.getException().getLocalizedMessage()));
-                case PASSED:
-                    PID binPid = href.getKey();
-                    PID parentPid = PIDs.get(binPid.getQualifier(), binPid.getId());
-                    PremisLogger premisLogger = getPremisLogger(parentPid);
-                    PremisEventBuilder premisEventBuilder = premisLogger.buildEvent(Premis.VirusCheck);
-
-                    premisEventBuilder.addSoftwareAgent(AgentPids.forSoftware(SoftwareAgent.clamav))
-                            .addEventDetail("File passed pre-ingest scan for viruses")
-                            .addOutcome(true)
-                            .write();
-
-                    scannedObjects++;
-
+                if (isObjectCompleted(objPid)) {
+                    log.debug("Skipping already scanned file {} for {}", href.getValue(), objPid);
+                    scannedObjects.incrementAndGet();
                     addClicks(1);
-                    markObjectCompleted(objPid);
+                    continue;
+                }
 
-                    break;
+                URI manifestURI = URI.create(href.getValue());
+
+                Future<?> future = executorService.submit(() -> {
+                    if (isInterrupted.get()) {
+                        return;
+                    }
+                    log.debug("Scanning file {} for object {}", manifestURI, objPid);
+
+                    File file = new File(manifestURI);
+
+                    ScanResult result = clamScan.scan(file);
+
+                    switch (result.getStatus()) {
+                    case FAILED:
+                        failures.put(manifestURI.toString(), result.getSignature());
+                        break;
+                    case ERROR:
+                        throw new Error(
+                                "Virus checks are producing errors: " +
+                                ((result.getException() == null) ? result.getResult() :
+                                        result.getException().getLocalizedMessage()));
+                    case PASSED:
+                        PID binPid = href.getKey();
+                        PID parentPid = PIDs.get(binPid.getQualifier(), binPid.getId());
+                        PremisLogger premisLogger = getPremisLogger(parentPid);
+                        PremisEventBuilder premisEventBuilder = premisLogger.buildEvent(Premis.VirusCheck);
+
+                        premisEventBuilder.addSoftwareAgent(AgentPids.forSoftware(SoftwareAgent.clamav))
+                                .addEventDetail("File passed pre-ingest scan for viruses")
+                                .addOutcome(true)
+                                .write();
+
+                        scannedObjects.incrementAndGet();
+
+                        addClicks(1);
+                        markObjectCompleted(objPid);
+
+                        break;
+                    }
+                });
+                futures.add(future);
             }
+
+            for (Future<?> future : futures) {
+                try {
+                    interruptJobIfStopped();
+                    future.get();
+                } catch (InterruptedException e) {
+                    isInterrupted.set(true);
+                    throw new JobInterruptedException("Virus scan interrupted", e);
+                } catch (ExecutionException e) {
+                    isInterrupted.set(true);
+                    if (e.getCause() instanceof Error) {
+                        throw (Error) e.getCause();
+                    }
+                    throw new RuntimeException(e.getCause());
+                }
+            }
+        } catch (JobInterruptedException e) {
+            isInterrupted.set(true);
+            throw e;
         }
 
         if (failures.size() > 0) {
@@ -131,9 +179,9 @@ public class VirusScanJob extends AbstractDepositJob {
             }
             failJob(failures.size() + " virus check(s) failed.", sb.toString());
         } else {
-            if (scannedObjects != hrefs.size()) {
+            if (scannedObjects.get() != hrefs.size()) {
                 failJob("Virus scan job did not attempt to scan all files.",
-                        (hrefs.size() - scannedObjects) + " objects were not scanned.");
+                        (hrefs.size() - scannedObjects.get()) + " objects were not scanned.");
             }
 
             PID depositPID = getDepositPID();

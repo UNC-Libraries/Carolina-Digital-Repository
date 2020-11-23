@@ -187,10 +187,16 @@
         <constructor-arg type="int" value="${clamd.port:3310}" index="1" />
         <constructor-arg type="int" value="${clamd.timeout:60000}" index="2" />
     </bean>
+    
+    <bean id="fileValidationExecutor" class="java.util.concurrent.Executors"
+            factory-method="newFixedThreadPool" destroy-method="shutdownNow">
+        <constructor-arg value="${job.fileValidation.workers:1}"/>
+    </bean>
 
     <bean id="VirusScanJob" class="edu.unc.lib.deposit.validate.VirusScanJob"
-        scope="prototype">
+            scope="prototype">
         <property name="clamScan" ref="clamScan" />
+        <property name="executorService" ref="fileValidationExecutor" />
     </bean>
     
     <bean id="FixityCheckJob" class="edu.unc.lib.deposit.validate.FixityCheckJob"

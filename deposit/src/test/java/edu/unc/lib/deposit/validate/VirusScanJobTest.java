@@ -32,12 +32,14 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jena.rdf.model.Bag;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
@@ -45,6 +47,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import com.philvarner.clamavj.ClamScan;
 import com.philvarner.clamavj.ScanResult;
 import com.philvarner.clamavj.ScanResult.Status;
@@ -79,6 +82,8 @@ public class VirusScanJobTest extends AbstractDepositJobTest {
     @Mock
     private ScanResult scanResult;
 
+    private final static ExecutorService executorService = MoreExecutors.newDirectExecutorService();
+
     @Before
     public void init() throws Exception {
 
@@ -95,6 +100,7 @@ public class VirusScanJobTest extends AbstractDepositJobTest {
         setField(job, "jobStatusFactory", jobStatusFactory);
         depositJobId = depositUUID + ":" + this.getClass().getName();
         setField(job, "depositJobId", depositJobId);
+        job.setExecutorService(executorService);
         job.init();
 
         when(depositStatusFactory.getState(anyString()))
@@ -118,6 +124,11 @@ public class VirusScanJobTest extends AbstractDepositJobTest {
         FileUtils.copyDirectory(examplesFile, depositDir);
 
         when(premisEventBuilder.addOutcome(anyBoolean())).thenReturn(premisEventBuilder);
+    }
+
+    @AfterClass
+    public static void afterTestClass() {
+        executorService.shutdown();
     }
 
     @Test
