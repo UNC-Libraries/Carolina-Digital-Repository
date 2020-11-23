@@ -68,6 +68,7 @@ import java.util.concurrent.RecursiveAction;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.rdf.model.Bag;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
@@ -367,10 +368,9 @@ public class ContentObjectTransformer extends RecursiveAction {
         List<DatastreamVersion> originalVersions = listDatastreamVersions(foxml, ORIGINAL_DS);
         if (originalVersions.size() > 0) {
             DatastreamVersion lastV = originalVersions.get(originalVersions.size() - 1);
-            origResc.addLiteral(CdrDeposit.md5sum, lastV.getMd5());
-            fileResc.addLiteral(CdrDeposit.createTime, lastV.getCreated());
-            fileResc.addLiteral(CdrDeposit.lastModifiedTime, lastV.getCreated());
-            origResc.addProperty(CdrDeposit.size, lastV.getSize());
+            addLiteralIfNotNull(origResc, CdrDeposit.md5sum, lastV.getMd5());
+            addLiteralIfNotNull(fileResc, CdrDeposit.createTime, lastV.getCreated());
+            addLiteralIfNotNull(fileResc, CdrDeposit.lastModifiedTime, lastV.getCreated());
         }
 
         // Populate the original file path
@@ -446,6 +446,12 @@ public class ContentObjectTransformer extends RecursiveAction {
                 .addEventDetail("Object migrated from Boxc 3 to Boxc 5")
                 .addSoftwareAgent(AgentPids.forSoftware(SoftwareAgent.migrationUtil))
                 .writeAndClose();
+    }
+
+    private void addLiteralIfNotNull(Resource subjResc, Property property, Object object) {
+        if (object != null) {
+            subjResc.addLiteral(property, object);
+        }
     }
 
     /**

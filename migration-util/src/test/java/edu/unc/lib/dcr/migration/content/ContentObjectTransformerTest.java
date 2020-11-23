@@ -528,7 +528,6 @@ public class ContentObjectTransformerTest {
         // datastreams only have a created time
         assertTrue(child1Resc.hasLiteral(CdrDeposit.lastModifiedTime, DEFAULT_CREATED_DATE));
         assertTrue(origResc.hasLiteral(CdrDeposit.mimetype, "text/xml"));
-        assertTrue(origResc.hasLiteral(CdrDeposit.size, DATA_FILE_SIZE));
         assertTrue(origResc.hasLiteral(CdrDeposit.stagingLocation, dataFilePath.toUri().toString()));
         assertTrue(child1Resc.hasProperty(CdrDeposit.label, "file1"));
 
@@ -724,7 +723,6 @@ public class ContentObjectTransformerTest {
                 fileResc.hasLiteral(CdrDeposit.createTime, DEFAULT_CREATED_DATE));
         // datastreams only have a created time
         assertTrue(fileResc.hasLiteral(CdrDeposit.lastModifiedTime, DEFAULT_CREATED_DATE));
-        assertTrue(origResc.hasLiteral(CdrDeposit.size, DATA_FILE_SIZE));
         assertTrue(origResc.hasLiteral(CdrDeposit.stagingLocation, dataFilePath.toUri().toString()));
         assertTrue(fileResc.hasProperty(CdrDeposit.label, "file1"));
 
@@ -1071,7 +1069,6 @@ public class ContentObjectTransformerTest {
         assertTrue(child1Resc.hasLiteral(CdrDeposit.createTime, DEFAULT_CREATED_DATE));
         assertTrue(child1Resc.hasLiteral(CdrDeposit.lastModifiedTime, DEFAULT_CREATED_DATE));
         assertFalse(origResc.hasProperty(CdrDeposit.mimetype));
-        assertTrue(origResc.hasLiteral(CdrDeposit.size, DATA_FILE_SIZE));
         assertTrue(origResc.hasLiteral(CdrDeposit.stagingLocation, dataFilePath.toUri().toString()));
         assertTrue(child1Resc.hasProperty(CdrDeposit.label, "file1"));
     }

@@ -54,6 +54,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import edu.unc.lib.dl.event.PremisLogger;
 import edu.unc.lib.dl.event.PremisLoggerFactory;
+import edu.unc.lib.dl.exceptions.RepositoryException;
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
 import edu.unc.lib.dl.fcrepo4.RepositoryPathConstants;
@@ -492,10 +493,15 @@ public abstract class AbstractDepositJob implements Runnable {
         while (i.hasNext()) {
             Statement s = i.nextStatement();
             PID fileObjPid = PIDs.get(s.getSubject().getURI());
-            Resource originalResc = s.getResource();
-            String href = originalResc.getProperty(CdrDeposit.stagingLocation).getString();
-            Entry<PID, String> entry = new SimpleEntry<>(fileObjPid, href);
-            results.add(entry);
+            try {
+                Resource originalResc = s.getResource();
+
+                String href = originalResc.getProperty(CdrDeposit.stagingLocation).getString();
+                Entry<PID, String> entry = new SimpleEntry<>(fileObjPid, href);
+                results.add(entry);
+            } catch (Exception e) {
+                throw new RepositoryException("Failed to get stagingLocation for " + fileObjPid, e);
+            }
         }
 
         return results;
