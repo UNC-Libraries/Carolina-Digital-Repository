@@ -85,6 +85,7 @@ import edu.unc.lib.dcr.migration.fcrepo3.DatastreamVersion;
 import edu.unc.lib.dcr.migration.fcrepo3.FoxmlDocumentHelpers;
 import edu.unc.lib.dcr.migration.paths.PathIndex;
 import edu.unc.lib.dcr.migration.premis.ContentPremisToRdfTransformer;
+import edu.unc.lib.dcr.migration.premis.NoExistingPremisEventLogException;
 import edu.unc.lib.dl.event.PremisLogger;
 import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.exceptions.RepositoryException;
@@ -430,7 +431,12 @@ public class ContentObjectTransformer extends RecursiveAction {
         ContentPremisToRdfTransformer premisTransformer =
                 new ContentPremisToRdfTransformer(bxc5Pid, premisLogger, originalPremisPath);
 
-        premisTransformer.compute();
+        try {
+            premisTransformer.compute();
+        } catch (NoExistingPremisEventLogException e) {
+            ContentTransformationReport.noPremis.incrementAndGet();
+            log.warn("Failed to transform existing PREMIS log, continuing migration: {}", e.getMessage());
+        }
 
         // Add migration event
         addMigrationEvent(premisLogger);

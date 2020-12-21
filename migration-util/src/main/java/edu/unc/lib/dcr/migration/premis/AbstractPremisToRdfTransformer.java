@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toList;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Date;
 import java.util.List;
@@ -74,8 +75,17 @@ public abstract class AbstractPremisToRdfTransformer extends RecursiveAction imp
         }
         SAXBuilder sb = SecureXMLFactory.createSAXBuilder();
         try {
-            doc = sb.build(docPath.toFile());
-        } catch (JDOMException | IOException e) {
+            try {
+                doc = sb.build(docPath.toFile());
+            } catch (JDOMException e) {
+                if (Files.size(docPath) == 0) {
+                    throw new NoExistingPremisEventLogException("PREMIS log file " + docPath
+                            + " for " + pid + " is empty", e);
+                } else {
+                    throw new RepositoryException("Failed to parse PREMIS document for " + pid, e);
+                }
+            }
+        } catch (IOException e) {
             throw new RepositoryException("Failed to load PREMIS document for " + pid, e);
         }
         return doc;
