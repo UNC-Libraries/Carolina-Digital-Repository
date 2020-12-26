@@ -226,12 +226,18 @@
         <property name="socketTimeout" value="${fits.http.client.socketTimeout:300000}" />
     </bean>
     
+    <bean id="fitsHttpConnectionManager" class="org.apache.http.impl.conn.PoolingHttpClientConnectionManager"
+            destroy-method="shutdown">
+        <property name="defaultMaxPerRoute" value="${job.extractTechnicalMetadata.workers:5}" />
+        <property name="maxTotal" value="${job.extractTechnicalMetadata.workers:5}" />
+    </bean>
+    
     <bean id="fitsHttpClientRequestConfig" factory-bean="fitsHttpClientRequestConfigBuilder"
         factory-method="build">
     </bean>
     
     <bean id="fitsPooledHttpClientBuilder" class="org.apache.http.impl.client.HttpClients" factory-method="custom">
-        <property name="connectionManager" ref="multiThreadedHttpConnectionManager" />
+        <property name="connectionManager" ref="fitsHttpConnectionManager" />
         <property name="defaultRequestConfig" ref="fitsHttpClientRequestConfig" />
     </bean>
     

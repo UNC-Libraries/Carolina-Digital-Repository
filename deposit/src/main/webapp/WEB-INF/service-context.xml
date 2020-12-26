@@ -178,6 +178,8 @@
     
     <bean id="multiThreadedHttpConnectionManager" class="org.apache.http.impl.conn.PoolingHttpClientConnectionManager"
             destroy-method="shutdown">
+        <property name="defaultMaxPerRoute" value="8" />
+        <property name="maxTotal" value="24" />
     </bean>
     
     <bean id="httpClientRequestConfigBuilder" class="org.apache.http.client.config.RequestConfig"
