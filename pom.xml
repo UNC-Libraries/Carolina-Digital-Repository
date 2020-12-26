@@ -61,7 +61,7 @@
         
         <cdr.version>5.0-SNAPSHOT</cdr.version>
         <fcrepo.version>3.8.0</fcrepo.version>
-        <fcrepo4.version>5.0.2</fcrepo4.version>
+        <fcrepo4.version>5.2.0-SNAPSHOT</fcrepo4.version>
         <fcrepo-indexing-triplestore.version>5.0.0</fcrepo-indexing-triplestore.version>
         <clamavj.version>0.3</clamavj.version>
         
@@ -71,9 +71,8 @@
         <quartz.version>2.3.2</quartz.version>
         
         <junit.version>4.13.1</junit.version>
-        <grizzly.version>2.3.28</grizzly.version>
-        <jersey.version>2.24</jersey.version>
-        <jersey.spring3.version>2.24</jersey.spring3.version>
+        <grizzly.version>2.4.4</grizzly.version>
+        <jersey.version>2.32</jersey.version>
         <mockito.version>1.10.19</mockito.version>
         <fcrepo.client.version>0.4.0</fcrepo.client.version>
         <mock.server.version>5.4.1</mock.server.version>
@@ -125,8 +124,8 @@
         <embedded-redis.version>0.7.3</embedded-redis.version>
         <solr.version>8.5.2</solr.version>
         <metrics.version>5.0.0</metrics.version>
-        <jena.version>3.9.0</jena.version>
-        <jena.fuseki.version>3.8.0</jena.fuseki.version>
+        <jena.version>3.17.0</jena.version>
+        <jena.fuseki.version>3.17.0</jena.fuseki.version>
         
         <fcrepo-camel.version>5.0.0</fcrepo-camel.version>
         <camel.version>2.20.4</camel.version>
@@ -978,7 +977,7 @@
             
             <dependency>
                 <groupId>org.apache.jena</groupId>
-                <artifactId>jena-fuseki-embedded</artifactId>
+                <artifactId>jena-fuseki-main</artifactId>
                 <version>${jena.fuseki.version}</version>
                 <scope>test</scope>
                 <exclusions>
@@ -1117,8 +1116,8 @@
             </dependency>
             <dependency>
                 <groupId>org.glassfish.jersey.ext</groupId>
-                <artifactId>jersey-spring3</artifactId>
-                <version>${jersey.spring3.version}</version>
+                <artifactId>jersey-spring5</artifactId>
+                <version>${jersey.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>

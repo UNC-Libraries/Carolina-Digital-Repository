@@ -181,7 +181,7 @@
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
-            <artifactId>jersey-spring3</artifactId>
+            <artifactId>jersey-spring5</artifactId>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.test-framework.providers</groupId>
@@ -199,7 +199,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.jena</groupId>
-            <artifactId>jena-fuseki-embedded</artifactId>
+            <artifactId>jena-fuseki-main</artifactId>
         </dependency>
     </dependencies>
 </project>

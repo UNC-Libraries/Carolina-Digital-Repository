@@ -34,7 +34,7 @@ import org.apache.camel.builder.NotifyBuilder;
 import org.apache.camel.test.spring.CamelSpringRunner;
 import org.apache.camel.test.spring.CamelTestContextBootstrapper;
 import org.apache.commons.io.FileUtils;
-import org.apache.jena.fuseki.embedded.FusekiServer;
+import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.ResultSet;
