@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.unc.lib.dl.exceptions.UnsupportedAlgorithmException;
+import edu.unc.lib.dl.fcrepo4.FedoraTransaction;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.persist.api.ingest.IngestSource;
 import edu.unc.lib.dl.persist.api.storage.BinaryDetails;
@@ -79,58 +80,45 @@ public class FSToFSTransferClient implements BinaryTransferClient {
 
     public BinaryTransferOutcome transfer(PID binPid, URI sourceFileUri, boolean allowOverwrite) {
         String digest;
-        URI destUri = destination.getStorageUri(binPid);
-        long currentTime = System.nanoTime();
-        Path oldFilePath = FileTransferHelpers.createFilePath(destUri, "old", currentTime);
-        Path newFilePath = FileTransferHelpers.createFilePath(destUri, "new", currentTime);
+        URI destUri = destination.getNewStorageUri(binPid);
         Path destinationPath = Paths.get(destUri);
+        log.debug("Transferring {} to {}", sourceFileUri, destUri);
+
+        if (!allowOverwrite && FileSystemTransferHelpers.versionsExist(destinationPath)) {
+            throw new BinaryAlreadyExistsException("Failed to transfer " + sourceFileUri
+                    + ", a binary already exists in " + destination.getId() + " at path " + destUri);
+        }
+
+        if (allowOverwrite && !FedoraTransaction.isStillAlive()) {
+            throw new BinaryTransferException("Must perform binary replacement as part of a transaction");
+        }
 
         Thread cleanupThread = null;
 
+        Path parentPath = destinationPath.getParent();
         try {
+            cleanupThread = FileTransferHelpers.registerCleanup(destinationPath);
+
             // Fill in parent directories if they are not present
-            Path parentPath = Paths.get(destUri).getParent();
             Files.createDirectories(parentPath);
-
-            boolean destFileExists = Files.exists(destinationPath);
-
-            if (!allowOverwrite && destFileExists) {
-                throw new BinaryAlreadyExistsException("Failed to transfer " + sourceFileUri
-                        + ", a binary already exists in " + destination.getId() + " at path " + destUri);
-            }
-
-            cleanupThread = FileTransferHelpers.registerCleanup(oldFilePath, newFilePath, destinationPath);
 
             Path sourcePath = Paths.get(sourceFileUri);
 
             // Using FileUtils.copyFile since it defers to FileChannel.transferFrom, which is interruptible
-            digest = copyFile(sourcePath, newFilePath);
-
-            // Rename old file to .old extension
-            if (destFileExists) {
-                Files.move(destinationPath, oldFilePath);
-            }
-            // Rename new file from .new extension
-            Files.move(newFilePath, destinationPath);
-
-            // Delete old file.
-            try {
-                Files.deleteIfExists(oldFilePath);
-            } catch (IOException e) {
-                // Ignore. New file is already in place
-                log.warn("Unable to delete {}. Reason {}", oldFilePath, e.getMessage());
-            }
+            digest = copyFile(sourcePath, destinationPath);
         } catch (IOException e) {
-            log.debug("Attempting to roll back failed transfer of {} to {}",
+            log.debug("Attempting to cleanup failed transfer of {} to {}",
                     sourceFileUri, destinationPath);
-            FileTransferHelpers.rollBackOldFile(oldFilePath, newFilePath, destinationPath);
+            FileTransferHelpers.cleanupFile(destinationPath);
             throw new BinaryTransferException("Failed to transfer " + sourceFileUri
                     + " to destination " + destination.getId(), e);
         } finally {
             FileTransferHelpers.clearCleanupHook(cleanupThread);
         }
 
-        return new BinaryTransferOutcomeImpl(destUri, digest);
+        log.debug("Finished transferring {} to {}", sourceFileUri, destUri);
+
+        return new BinaryTransferOutcomeImpl(binPid, destUri, destination.getId(), digest);
     }
 
     private static final long FILE_COPY_BUFFER_SIZE = 1024 * 1024 * 30;

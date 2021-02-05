@@ -107,6 +107,22 @@ public class FcrepoClientFactory {
     }
 
     /**
+     * Construct a FcrepoClient object with the supplied authentication information
+     *
+     * @param host
+     * @param user
+     * @param password
+     * @return
+     */
+    public FcrepoClient makeAuthenticatedNonTransactionalClient(String host, String user, String password) {
+        return FcrepoClient.client()
+                .credentials(user, password)
+                .authScope(host)
+                .throwExceptionOnFailure()
+                .build();
+    }
+
+    /**
      * Construct a TransactionalFcrepoClient with exceptions thrown on failure and no authentication.
      *
      * @return

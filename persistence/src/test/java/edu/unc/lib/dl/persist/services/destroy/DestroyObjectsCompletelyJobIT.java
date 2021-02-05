@@ -384,7 +384,7 @@ public class DestroyObjectsCompletelyJobIT {
     private FileObject addFileToWork(WorkObject work) throws Exception {
         String bodyString = "Content";
         String mimetype = "text/plain";
-        Path storagePath = Paths.get(locationManager.getStorageLocationById(LOC1_ID).getStorageUri(work.getPid()));
+        Path storagePath = Paths.get(locationManager.getStorageLocationById(LOC1_ID).getNewStorageUri(work.getPid()));
         Files.createDirectories(storagePath);
         File contentFile = Files.createTempFile(storagePath, "file", ".txt").toFile();
         String filename = contentFile.getName();

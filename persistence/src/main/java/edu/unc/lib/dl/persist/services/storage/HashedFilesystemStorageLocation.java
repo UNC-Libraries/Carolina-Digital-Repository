@@ -24,6 +24,7 @@ import edu.unc.lib.dl.fcrepo4.RepositoryPaths;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.persist.api.storage.StorageLocation;
 import edu.unc.lib.dl.persist.api.storage.StorageType;
+import edu.unc.lib.dl.persist.services.transfer.FileSystemTransferHelpers;
 import edu.unc.lib.dl.util.URIUtil;
 
 /**
@@ -91,19 +92,29 @@ public class HashedFilesystemStorageLocation implements StorageLocation {
         this.name = name;
     }
 
-    @Override
-    public URI getStorageUri(PID pid) {
+    private String getBaseStoragePath(PID pid) {
         String objId = pid.getId();
         String derivativePath = RepositoryPaths
                 .idToPath(objId, HASHED_PATH_DEPTH, HASHED_PATH_SIZE);
 
-        URI storageUri;
         if (pid.getComponentPath() != null) {
-            storageUri = URI.create(URIUtil.join(baseUri, derivativePath, objId, pid.getComponentPath()));
+            return URIUtil.join(baseUri, derivativePath, objId, pid.getComponentPath());
         } else {
-            storageUri = URI.create(URIUtil.join(baseUri, derivativePath, objId));
+            return URIUtil.join(baseUri, derivativePath, objId);
         }
-        return storageUri.normalize();
+    }
+
+    @Override
+    public URI getNewStorageUri(PID pid) {
+        String path = getBaseStoragePath(pid);
+        path += "." + System.nanoTime();
+        return URI.create(path).normalize();
+    }
+
+    @Override
+    public URI getCurrentStorageUri(PID pid) {
+        String path = getBaseStoragePath(pid);
+        return FileSystemTransferHelpers.getMostRecentStorageUri(URI.create(path));
     }
 
     @Override

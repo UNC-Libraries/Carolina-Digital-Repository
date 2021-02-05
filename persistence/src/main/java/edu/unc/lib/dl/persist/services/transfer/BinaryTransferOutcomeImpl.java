@@ -17,6 +17,7 @@ package edu.unc.lib.dl.persist.services.transfer;
 
 import java.net.URI;
 
+import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferOutcome;
 
 /**
@@ -26,11 +27,15 @@ import edu.unc.lib.dl.persist.api.transfer.BinaryTransferOutcome;
  */
 public class BinaryTransferOutcomeImpl implements BinaryTransferOutcome {
 
+    private PID binPid;
     private URI destinationUri;
+    private String destinationId;
     private String sha1;
 
-    public BinaryTransferOutcomeImpl(URI destinationUri, String sha1) {
+    public BinaryTransferOutcomeImpl(PID binPid, URI destinationUri, String destinationId, String sha1) {
+        this.binPid = binPid;
         this.destinationUri = destinationUri;
+        this.destinationId = destinationId;
         this.sha1 = sha1;
     }
 
@@ -44,4 +49,17 @@ public class BinaryTransferOutcomeImpl implements BinaryTransferOutcome {
         return sha1;
     }
 
+    @Override
+    public PID getBinaryPid() {
+        return binPid;
+    }
+
+    @Override
+    public String getDestinationId() {
+        return destinationId;
+    }
+
+    public static enum BinaryTransferActionTaken {
+        Created, Replaced, VersionAdded;
+    }
 }

@@ -61,7 +61,7 @@ public class StreamToPosixTransferClientTest extends StreamToFSTransferClientTes
         binPid = getOriginalFilePid(PIDs.get(TEST_UUID));
         binDestPath = storagePath.resolve(binPid.getComponentId());
 
-        when(storageLoc.getStorageUri(binPid)).thenReturn(binDestPath.toUri());
+        when(storageLoc.getNewStorageUri(binPid)).thenReturn(binDestPath.toUri());
         when(storageLoc.getPermissions()).thenReturn(null);
     }
 

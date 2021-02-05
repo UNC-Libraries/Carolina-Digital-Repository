@@ -28,20 +28,26 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.NotImplementedException;
+import org.awaitility.Awaitility;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
+import edu.unc.lib.dl.fcrepo4.FedoraTransaction;
 import edu.unc.lib.dl.fcrepo4.PIDs;
+import edu.unc.lib.dl.fcrepo4.TransactionManager;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.persist.api.ingest.IngestSource;
 import edu.unc.lib.dl.persist.api.storage.BinaryDetails;
@@ -49,6 +55,7 @@ import edu.unc.lib.dl.persist.api.storage.StorageLocation;
 import edu.unc.lib.dl.persist.api.transfer.BinaryAlreadyExistsException;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferException;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferOutcome;
+import edu.unc.lib.dl.persist.services.storage.HashedFilesystemStorageLocation;
 
 /**
  * @author bbpennel
@@ -68,11 +75,14 @@ public class FSToFSTransferClientTest {
     protected Path storagePath;
     @Mock
     protected IngestSource ingestSource;
-    @Mock
-    private StorageLocation storageLoc;
+    protected StorageLocation storageLoc;
 
     protected PID binPid;
-    protected Path binDestPath;
+
+    @Mock
+    protected TransactionManager txManager;
+    protected FedoraTransaction fedoraTransaction;
+    protected final static URI TX_URI = URI.create("http://example.com/tx");
 
     @Before
     public void setup() throws Exception {
@@ -81,12 +91,21 @@ public class FSToFSTransferClientTest {
         sourcePath = tmpFolder.newFolder("source").toPath();
         storagePath = tmpFolder.newFolder("storage").toPath();
 
+        HashedFilesystemStorageLocation hashedLoc = new HashedFilesystemStorageLocation();
+        hashedLoc.setBase(storagePath.toString());
+        hashedLoc.setId("loc1");
+        storageLoc = hashedLoc;
+
         client = new FSToFSTransferClient(ingestSource, storageLoc);
 
         binPid = getOriginalFilePid(PIDs.get(TEST_UUID));
-        binDestPath = storagePath.resolve(binPid.getComponentId());
+    }
 
-        when(storageLoc.getStorageUri(binPid)).thenReturn(binDestPath.toUri());
+    @After
+    public void teardown() throws Exception {
+        if (fedoraTransaction != null) {
+            fedoraTransaction.close();
+        }
     }
 
     @Test(expected = BinaryTransferException.class)
@@ -103,9 +122,9 @@ public class FSToFSTransferClientTest {
 
         BinaryTransferOutcome outcome = client.transfer(binPid, sourceFile.toUri());
 
-        assertIsSourceFile(binDestPath);
+        assertIsSourceFile(outcome);
         assertIsSourceFile(sourceFile);
-        assertOutcome(outcome, binDestPath, FILE_CONTENT_SHA1);
+        assertOutcome(outcome, FILE_CONTENT_SHA1);
     }
 
     @Test
@@ -116,16 +135,17 @@ public class FSToFSTransferClientTest {
 
         BinaryTransferOutcome outcome = client.transfer(binPid, sourceFile.toUri());
 
-        assertIsSourceFile(binDestPath);
-        assertOutcome(outcome, binDestPath, FILE_CONTENT_SHA1);
+        assertIsSourceFile(outcome);
+        assertOutcome(outcome, FILE_CONTENT_SHA1);
     }
 
     @Test(expected = BinaryAlreadyExistsException.class)
     public void transferFileAlreadyExists() throws Exception {
         String existingContent = "I exist";
 
-        Files.createDirectories(binDestPath.getParent());
-        createFile(binDestPath, existingContent);
+        Path destPath = Paths.get(storageLoc.getNewStorageUri(binPid));
+        Files.createDirectories(destPath.getParent());
+        createFile(destPath, existingContent);
         Path sourceFile = createSourceFile();
 
         client.transfer(binPid, sourceFile.toUri());
@@ -139,53 +159,67 @@ public class FSToFSTransferClientTest {
 
     @Test
     public void transferReplaceFileReadOnlySource() throws Exception {
+        fedoraTransaction = new FedoraTransaction(TX_URI, txManager);
         when(ingestSource.isReadOnly()).thenReturn(true);
 
         Path sourceFile = createSourceFile();
 
         BinaryTransferOutcome outcome = client.transferReplaceExisting(binPid, sourceFile.toUri());
 
-        assertIsSourceFile(binDestPath);
+        assertIsSourceFile(outcome);
         assertIsSourceFile(sourceFile);
-        assertOutcome(outcome, binDestPath, FILE_CONTENT_SHA1);
+        assertOutcome(outcome, FILE_CONTENT_SHA1);
     }
 
     @Test
     public void transferReplaceFileModifiableSource() throws Exception {
+        fedoraTransaction = new FedoraTransaction(TX_URI, txManager);
         when(ingestSource.isReadOnly()).thenReturn(false);
 
         Path sourceFile = createSourceFile();
 
         BinaryTransferOutcome outcome = client.transferReplaceExisting(binPid, sourceFile.toUri());
 
-        assertIsSourceFile(binDestPath);
-        assertOutcome(outcome, binDestPath, FILE_CONTENT_SHA1);
+        assertIsSourceFile(outcome);
+        assertOutcome(outcome, FILE_CONTENT_SHA1);
+    }
+
+    @Test(expected = BinaryTransferException.class)
+    public void transferReplaceFileNotInTx() throws Exception {
+        when(ingestSource.isReadOnly()).thenReturn(false);
+
+        Path sourceFile = createSourceFile();
+
+        client.transferReplaceExisting(binPid, sourceFile.toUri());
     }
 
     @Test
     public void transferReplaceFileAlreadyExists() throws Exception {
+        fedoraTransaction = new FedoraTransaction(TX_URI, txManager);
         String existingContent = "I exist";
 
-        Files.createDirectories(binDestPath.getParent());
-        createFile(binDestPath, existingContent);
+        Path destPath = Paths.get(storageLoc.getNewStorageUri(binPid));
+        Files.createDirectories(destPath.getParent());
+        createFile(destPath, existingContent);
         Path sourceFile = createSourceFile();
 
         BinaryTransferOutcome outcome = client.transferReplaceExisting(binPid, sourceFile.toUri());
 
-        assertIsSourceFile(binDestPath);
-        assertOutcome(outcome, binDestPath, FILE_CONTENT_SHA1);
+        assertIsSourceFile(outcome);
+        assertOutcome(outcome, FILE_CONTENT_SHA1);
     }
 
     @Test
     public void rollbackOnTransferInterruption() throws Exception {
         String existingContent = "I exist";
-        Path parentPath = binDestPath.getParent();
+        Path destPath = Paths.get(storageLoc.getNewStorageUri(binPid));
+        Path parentPath = destPath.getParent();
         Files.createDirectories(parentPath);
 
-        createFile(binDestPath, existingContent);
+        createFile(destPath, existingContent);
         Path sourceFile = createSourceFile();
 
-        File destFile = binDestPath.toFile();
+        File destFile = destPath.toFile();
         File parentDir = parentPath.toFile();
         parentDir.setReadOnly();
 
@@ -193,7 +227,7 @@ public class FSToFSTransferClientTest {
             client.transferReplaceExisting(binPid, sourceFile.toUri());
         } catch (BinaryTransferException e) {
             assertTrue("Original file should be present", destFile.exists());
-            assertEquals(1, binDestPath.getParent().toFile().listFiles().length);
+            assertEquals(1, parentDir.listFiles().length);
         } finally {
             parentDir.setWritable(true);
             destFile.delete();
@@ -220,10 +254,11 @@ public class FSToFSTransferClientTest {
 
         BinaryTransferOutcome outcome = client.transfer(binPid, sourceFile.toUri());
 
-        assertTrue(Files.exists(binDestPath));
-        assertEquals(fileSize, Files.size(binDestPath));
-        String expectedSha1 = encodeHexString(DigestUtils.sha1(Files.newInputStream(binDestPath)));
-        assertOutcome(outcome, binDestPath, expectedSha1);
+        Path destPath = Paths.get(outcome.getDestinationUri());
+        assertTrue(Files.exists(destPath));
+        assertEquals(fileSize, Files.size(destPath));
+        String expectedSha1 = encodeHexString(DigestUtils.sha1(Files.newInputStream(destPath)));
+        assertOutcome(outcome, expectedSha1);
     }
 
     @Test
@@ -254,7 +289,10 @@ public class FSToFSTransferClientTest {
 
         copyThread.interrupt();
 
-        assertFalse(Files.exists(binDestPath));
+        Path aDestPath = Paths.get(storageLoc.getNewStorageUri(binPid));
+        // Expect the parent directory where the file should be written to to have been cleaned up
+        Awaitility.await().atMost(Duration.ofSeconds(1))
+            .until(() -> !Files.exists(aDestPath.getParent()));
     }
 
     @Test
@@ -336,14 +374,19 @@ public class FSToFSTransferClientTest {
         return filePath;
     }
 
+    protected void assertIsSourceFile(BinaryTransferOutcome outcome) throws Exception {
+        assertIsSourceFile(Paths.get(outcome.getDestinationUri()));
+    }
+
     protected void assertIsSourceFile(Path path) throws Exception {
         assertTrue("Source file was not present at " + path, path.toFile().exists());
         assertEquals(FILE_CONTENT, FileUtils.readFileToString(path.toFile(), "UTF-8"));
     }
 
-    protected void assertOutcome(BinaryTransferOutcome outcome, Path expectedDest, String expectedSha1) {
+    protected void assertOutcome(BinaryTransferOutcome outcome, String expectedSha1) {
         assertNotNull("Outcome was not returned", outcome);
-        assertEquals("Unexpected outcome destination", expectedDest, Paths.get(outcome.getDestinationUri()));
+        assertTrue("Destination file must be in the destination storage location",
+                Paths.get(outcome.getDestinationUri()).startsWith(storagePath));
         assertEquals("Unexpected outcome digest", expectedSha1, outcome.getSha1());
     }
 }

@@ -17,6 +17,8 @@ package edu.unc.lib.dl.persist.api.transfer;
 
 import java.net.URI;
 
+import edu.unc.lib.dl.fedora.PID;
+
 /**
  * Information describing the outcome of a binary transfer operation
  *
@@ -25,9 +27,19 @@ import java.net.URI;
 public interface BinaryTransferOutcome {
 
     /**
+     * @return PID of the binary object the transferred file was associated with.
+     */
+    PID getBinaryPid();
+
+    /**
      * @return URI where the binary is stored after the transfer
      */
     URI getDestinationUri();
+
+    /**
+     * @return ID of the storage location where the binary was transferred to
+     */
+    String getDestinationId();
 
     /**
      * @return SHA1 calculated of the binary during transfer

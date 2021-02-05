@@ -322,7 +322,11 @@ public class TransferBinariesToStorageJob extends AbstractConcurrentDepositJob {
                     // binary was not previously fully transferred, so retry with replacement enabled
                     log.debug("Retransferring file from {} for {} with replacement enabled",
                             stagingUri, binPid.getQualifiedId());
-                    BinaryTransferOutcome outcome = transferSession.transferReplaceExisting(binPid, stagingUri);
+                    BinaryDetails details = transferSession.getStoredBinaryDetails(binPid);
+                    // Clear out the old file
+                    transferSession.delete(details.getDestinationUri());
+                    // Transfer the new one
+                    BinaryTransferOutcome outcome = transferSession.transfer(binPid, stagingUri);
                     storageUri = outcome.getDestinationUri();
                     digest = outcome.getSha1();
                 }

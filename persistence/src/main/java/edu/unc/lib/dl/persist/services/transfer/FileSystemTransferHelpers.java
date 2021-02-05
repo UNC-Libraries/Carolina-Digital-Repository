@@ -20,13 +20,18 @@ import static org.apache.commons.codec.binary.Hex.encodeHexString;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import edu.unc.lib.dl.exceptions.RepositoryException;
 import edu.unc.lib.dl.fedora.PID;
@@ -54,7 +59,10 @@ public class FileSystemTransferHelpers {
      * @return details of stored binary, or null if not found
      */
     public static BinaryDetails getStoredBinaryDetails(StorageLocation storageLoc, PID binPid) {
-        URI destUri = storageLoc.getStorageUri(binPid);
+        URI destUri = storageLoc.getCurrentStorageUri(binPid);
+        if (destUri == null) {
+            return null;
+        }
         return getBinaryDetails(destUri);
     }
 
@@ -82,6 +90,50 @@ public class FileSystemTransferHelpers {
             throw new BinaryTransferException("Failed to retrieve binary details for " + binUri, e);
         } catch (NoSuchAlgorithmException e) {
             throw new RepositoryException(e);
+        }
+    }
+
+    /**
+     * Get the most recent storage URI for files beginning with the provided base URI
+     *
+     * @param baseUri Base URI of the file, without version suffixes
+     * @return Most recent storage URI, or null if there is no existing URI
+     */
+    public static URI getMostRecentStorageUri(URI baseUri) {
+        Path basePath = Paths.get(baseUri);
+        Path dirPath = basePath.getParent();
+        String namePrefix = basePath.getFileName().toString();
+        try (Stream<Path> stream = Files.list(dirPath)) {
+            Path recentPath = stream
+                    .filter(path -> !Files.isDirectory(path))
+                    .filter(path -> path.getFileName().toString().startsWith(namePrefix))
+                    .max(Comparator.comparing(String::valueOf))
+                    .get();
+            return recentPath.toUri().normalize();
+        } catch (NoSuchFileException | NoSuchElementException e) {
+            return null;
+        } catch (IOException e) {
+            throw new BinaryTransferException("Failed to retrieve most recent URI for " + baseUri, e);
+        }
+    }
+
+    /**
+     * @param filePath Path of the file to check for existing versions of.
+     * @return True if any files exist in the parent directory of filePath which begin with
+     *    the same filename prefix. This includes filePath itself, if it exists.
+     */
+    public static boolean versionsExist(Path filePath) {
+        Path dirPath = filePath.getParent();
+        if (Files.notExists(dirPath)) {
+            return false;
+        }
+        String filename = filePath.getFileName().toString();
+        String namePrefix = StringUtils.substringBefore(filename, ".");
+        try (Stream<Path> stream = Files.list(dirPath)) {
+            return stream.filter(path -> !Files.isDirectory(path))
+                    .anyMatch(path -> path.getFileName().toString().startsWith(namePrefix));
+        } catch (IOException e) {
+            throw new BinaryTransferException("Failed to check for storage URI " + filePath, e);
         }
     }
 }

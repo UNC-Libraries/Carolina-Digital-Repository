@@ -17,12 +17,22 @@ package edu.unc.lib.dl.persist.services.storage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fedora.PID;
@@ -36,11 +46,18 @@ public class HashedFilesystemStorageLocationTest {
 
     private static final String TEST_UUID = "2e8f7551-ef3c-4387-8c3d-a38609927800";
 
+    @Rule
+    public final TemporaryFolder tmpFolder = new TemporaryFolder();
+    private Path storagePath;
+
     protected HashedFilesystemStorageLocation loc;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
+        storagePath = tmpFolder.newFolder("storage").toPath();
+
         loc = new HashedFilesystemStorageLocation();
+        loc.setBase(storagePath.toString());
     }
 
     @Test
@@ -93,7 +110,7 @@ public class HashedFilesystemStorageLocationTest {
     }
 
     @Test
-    public void getStorageUriForPidWithoutComponent() {
+    public void getNewStorageUriForPidWithoutComponent() {
         String assignedBase = "file:/location/path/";
 
         loc.setId("loc1");
@@ -101,12 +118,13 @@ public class HashedFilesystemStorageLocationTest {
 
         PID pid = PIDs.get(TEST_UUID);
 
-        URI storageUri = loc.getStorageUri(pid);
-        assertEquals(assignedBase + "2e/8f/75/51/" + TEST_UUID, storageUri.toString());
+        URI storageUri = loc.getNewStorageUri(pid);
+        assertTrue(storageUri.toString().startsWith(assignedBase + "2e/8f/75/51/" + TEST_UUID));
+
     }
 
     @Test
-    public void getStorageUriForPidWithComponent() {
+    public void getNewStorageUriForPidWithComponent() {
         String assignedBase = "file:/location/path/";
         String component = "/datafs/original_data";
 
@@ -115,8 +133,53 @@ public class HashedFilesystemStorageLocationTest {
 
         PID pid = PIDs.get(TEST_UUID + component);
 
-        URI storageUri = loc.getStorageUri(pid);
-        assertEquals(assignedBase + "2e/8f/75/51/" + TEST_UUID + component, storageUri.toString());
+        URI storageUri = loc.getNewStorageUri(pid);
+        assertTrue(storageUri.toString().startsWith(assignedBase + "2e/8f/75/51/" + TEST_UUID + component));
+    }
+
+    @Test
+    public void getNewStorageUriNoConflicts() {
+        PID pid = PIDs.get(TEST_UUID);
+        URI storageUri1 = loc.getNewStorageUri(pid);
+        URI storageUri2 = loc.getNewStorageUri(pid);
+        assertNotNull(storageUri1);
+        assertNotNull(storageUri2);
+        assertNotEquals(storageUri1, storageUri2);
+    }
+
+    @Test
+    public void getCurrentStorageUriNoExisting() {
+        PID pid = PIDs.get(TEST_UUID);
+        assertNull(loc.getCurrentStorageUri(pid));
+    }
+
+    @Test
+    public void getCurrentStorageUriOneExisting() throws Exception {
+        PID pid = PIDs.get(TEST_UUID);
+        URI expectedUri = createNewStorageUri(pid);
+
+        URI currentUri = loc.getCurrentStorageUri(pid);
+        assertEquals(expectedUri, currentUri);
+        assertTrue(currentUri.toString().startsWith(storagePath.toUri().toString()));
+    }
+
+    @Test
+    public void getCurrentStorageUriMultipleExisting() throws Exception {
+        PID pid = PIDs.get(TEST_UUID);
+        createNewStorageUri(pid);
+        createNewStorageUri(pid);
+        createNewStorageUri(pid);
+        URI expectedUri = createNewStorageUri(pid);
+
+        assertEquals(expectedUri, loc.getCurrentStorageUri(pid));
+    }
+
+    private URI createNewStorageUri(PID pid) throws IOException {
+        URI uri = loc.getNewStorageUri(pid);
+        Path destPath = Paths.get(uri);
+        Files.createDirectories(destPath.getParent());
+        FileUtils.writeStringToFile(destPath.toFile(), "content", "UTF-8");
+        return uri;
     }
 
     @Test

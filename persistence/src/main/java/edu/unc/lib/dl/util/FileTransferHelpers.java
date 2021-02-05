@@ -15,11 +15,16 @@
  */
 package edu.unc.lib.dl.util;
 
+import static org.slf4j.LoggerFactory.getLogger;
+
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
+import org.slf4j.Logger;
 
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferException;
 
@@ -29,6 +34,8 @@ import edu.unc.lib.dl.persist.api.transfer.BinaryTransferException;
  * @author lfarrell
  */
 public class FileTransferHelpers {
+    private static final Logger log = getLogger(FileTransferHelpers.class);
+
     private FileTransferHelpers() {
     }
 
@@ -41,13 +48,12 @@ public class FileTransferHelpers {
      * Register cleanup of partially transferred files at shutdown time in case
      * the JVM exits before normal processes complete
      *
-     * @param oldFilePath
-     * @param newFilePath
+     * @param filePath
      * @param destPath
      * @return
      */
-    public static Thread registerCleanup(Path oldFilePath, Path newFilePath, Path destPath) {
-        Thread cleanupThread = new Thread(() -> rollBackOldFile(oldFilePath, newFilePath, destPath));
+    public static Thread registerCleanup(Path filePath) {
+        Thread cleanupThread = new Thread(() -> cleanupFile(filePath));
         Runtime.getRuntime().addShutdownHook(cleanupThread);
         return cleanupThread;
     }
@@ -69,16 +75,15 @@ public class FileTransferHelpers {
      * @param  newFilePath
      * @param destPath
      */
-    public static void rollBackOldFile(Path oldFilePath, Path newFilePath, Path destPath) {
+    public static void cleanupFile(Path filePath) {
         try {
-            if (Files.exists(oldFilePath)) {
-                Files.move(oldFilePath, destPath);
-            }
-
-            Files.deleteIfExists(newFilePath);
+            Files.deleteIfExists(filePath);
+            // Cleanup the parent directory if all it contained was this file
+            Files.deleteIfExists(filePath.getParent());
+        } catch (DirectoryNotEmptyException e) {
+            log.debug("Parent of {} is not empty, skipping cleanup");
         } catch (IOException e) {
-            throw new BinaryTransferException("Failed to roll back " + oldFilePath.toString()
-                    + "  in transfer to destination " + destPath, e);
+            throw new BinaryTransferException("Failed to cleanup " + filePath, e);
         }
     }
 }

@@ -69,7 +69,7 @@ public class BinaryTransferSessionImplTest extends AbstractBinaryTransferTest {
         when(sourceManager.getIngestSourceForUri(any(URI.class))).thenReturn(ingestSource);
         when(ingestSource.getId()).thenReturn("source1");
 
-        when(storageLoc.getStorageUri(binPid)).thenReturn(binDestPath.toUri());
+        when(storageLoc.getNewStorageUri(binPid)).thenReturn(binDestPath.toUri());
         when(storageLoc.getId()).thenReturn("loc1");
     }
 
@@ -111,7 +111,7 @@ public class BinaryTransferSessionImplTest extends AbstractBinaryTransferTest {
 
         PID binPid2 = makeBinPid();
         Path binDestPath2 = storagePath.resolve(binPid2.getComponentId());
-        when(storageLoc.getStorageUri(binPid2)).thenReturn(binDestPath2.toUri());
+        when(storageLoc.getNewStorageUri(binPid2)).thenReturn(binDestPath2.toUri());
 
         Path sourceFile = createSourceFile();
         Path sourceFile2 = createSourceFile("another.txt", "stuff");
@@ -139,7 +139,7 @@ public class BinaryTransferSessionImplTest extends AbstractBinaryTransferTest {
 
         PID binPid2 = makeBinPid();
         Path binDestPath2 = storagePath.resolve(binPid2.getComponentId());
-        when(storageLoc.getStorageUri(binPid2)).thenReturn(binDestPath2.toUri());
+        when(storageLoc.getNewStorageUri(binPid2)).thenReturn(binDestPath2.toUri());
 
         // Create second ingest source, which is not read only
         IngestSource source2 = mock(IngestSource.class);

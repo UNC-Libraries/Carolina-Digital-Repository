@@ -73,7 +73,7 @@ public class MultiDestinationTransferSessionImplTest extends AbstractBinaryTrans
 
         when(ingestSource.getStorageType()).thenReturn(FILESYSTEM);
         when(storageLoc.getStorageType()).thenReturn(FILESYSTEM);
-        when(storageLoc.getStorageUri(binPid)).thenReturn(binDestPath.toUri());
+        when(storageLoc.getNewStorageUri(binPid)).thenReturn(binDestPath.toUri());
         when(storageLoc.getId()).thenReturn("loc1");
     }
 
@@ -90,7 +90,7 @@ public class MultiDestinationTransferSessionImplTest extends AbstractBinaryTrans
         PID binPid2 = makeBinPid();
         Path binDestPath2 = storagePath.resolve(binPid2.getComponentId());
         // Establish destination path for second binary in second location
-        when(storageLoc.getStorageUri(binPid2)).thenReturn(binDestPath2.toUri());
+        when(storageLoc.getNewStorageUri(binPid2)).thenReturn(binDestPath2.toUri());
 
         Path sourceFile = createSourceFile();
         Path sourceFile2 = createSourceFile("another.txt", "stuff");
@@ -118,7 +118,7 @@ public class MultiDestinationTransferSessionImplTest extends AbstractBinaryTrans
         PID binPid2 = makeBinPid();
         Path binDestPath2 = storagePath2.resolve(binPid2.getComponentId());
         // Establish destination path for second binary in second location
-        when(storageLoc2.getStorageUri(binPid2)).thenReturn(binDestPath2.toUri());
+        when(storageLoc2.getNewStorageUri(binPid2)).thenReturn(binDestPath2.toUri());
 
         Path sourceFile = createSourceFile();
         Path sourceFile2 = createSourceFile("another.txt", "stuff");

@@ -15,8 +15,6 @@
  */
 package edu.unc.lib.dl.persist.services.transfer;
 
-import static java.nio.file.Files.createDirectories;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.apache.commons.codec.binary.Hex.encodeHexString;
 import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
 
@@ -35,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.unc.lib.dl.exceptions.UnsupportedAlgorithmException;
+import edu.unc.lib.dl.fcrepo4.FedoraTransaction;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.persist.api.storage.BinaryDetails;
 import edu.unc.lib.dl.persist.api.storage.StorageLocation;
@@ -74,54 +73,37 @@ public class StreamToFSTransferClient implements StreamTransferClient {
     }
 
     protected BinaryTransferOutcome writeStream(PID binPid, InputStream sourceStream, boolean allowOverwrite) {
-        URI destUri = destination.getStorageUri(binPid);
+        URI destUri = destination.getNewStorageUri(binPid);
         Path destPath = Paths.get(destUri);
-        boolean destFileExists = destPath.toFile().exists();
 
-        if (!allowOverwrite && destFileExists) {
+        if (!allowOverwrite && FileSystemTransferHelpers.versionsExist(destPath)) {
             throw new BinaryAlreadyExistsException("Failed to write stream, a binary already exists in "
-                     + destination.getId() + " at path " + destUri);
+                    + destination.getId() + " at path " + destUri);
         }
 
-        long currentTime = System.nanoTime();
-        Path oldFilePath = FileTransferHelpers.createFilePath(destUri, "old", currentTime);
-        Path newFilePath = FileTransferHelpers.createFilePath(destUri, "new", currentTime);
+        if (allowOverwrite && !FedoraTransaction.isStillAlive()) {
+            throw new BinaryTransferException("Must perform binary replacement as part of a transaction");
+        }
 
         Thread cleanupThread = null;
 
+        Path parentPath = destPath.getParent();
         try {
-            // Fill in parent directories if they are not present
-            Path parentPath = Paths.get(destUri).getParent();
-            createDirectories(parentPath);
+            cleanupThread = FileTransferHelpers.registerCleanup(destPath);
 
-            cleanupThread = FileTransferHelpers.registerCleanup(oldFilePath, newFilePath, destPath);
+            // Fill in parent directories if they are not present
+            Files.createDirectories(parentPath);
 
             DigestInputStream digestStream = new DigestInputStream(
                     sourceStream, MessageDigest.getInstance(DigestAlgorithm.DEFAULT_ALGORITHM.getName()));
-            // Write content to temp file in case of interruption
-            copyInputStreamToFile(digestStream, newFilePath.toFile());
+            copyInputStreamToFile(digestStream, destPath.toFile());
 
             String digest = encodeHexString(digestStream.getMessageDigest().digest());
 
-            // Rename old file to .old extension
-            if (destFileExists) {
-                Files.move(destPath, oldFilePath);
-            }
-
-            // Move temp file into final location
-            Files.move(newFilePath, destPath, REPLACE_EXISTING);
-
-            // Delete old file.
-            try {
-                Files.deleteIfExists(oldFilePath);
-            } catch (IOException e) {
-                // Ignore. New file is already in place
-                log.warn("Unable to delete {}. Reason {}", oldFilePath, e.getMessage());
-            }
-
-            return new BinaryTransferOutcomeImpl(destUri, digest);
+            return new BinaryTransferOutcomeImpl(binPid, destUri, destination.getId(), digest);
         } catch (IOException e) {
-            FileTransferHelpers.rollBackOldFile(oldFilePath, newFilePath, destPath);
+            log.debug("Attempting to cleanup {}", destPath);
+            FileTransferHelpers.cleanupFile(destPath);
             throw new BinaryTransferException("Failed to write stream to destination "
                     + destination.getId(), e);
         } catch (final NoSuchAlgorithmException e) {

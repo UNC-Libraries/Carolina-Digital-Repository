@@ -24,6 +24,7 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 
 import edu.unc.lib.dl.fedora.FedoraException;
+import edu.unc.lib.dl.persist.api.transfer.BinaryTransferService;
 import edu.unc.lib.dl.util.URIUtil;
 
 /**
@@ -38,6 +39,7 @@ public class TransactionManager {
     private static final String COMMIT_TX = "fcr:tx/fcr:commit";
     private static final String ROLLBACK_TX = "fcr:tx/fcr:rollback";
     private FcrepoClient client;
+    private BinaryTransferService binaryTransferService;
 
     public FedoraTransaction startTransaction() throws FedoraException {
         URI repoBase = URI.create(RepositoryPaths.getBaseUri());
@@ -56,6 +58,8 @@ public class TransactionManager {
     }
 
     protected void commitTransaction(URI txUri) {
+        binaryTransferService.prepareCommitTransaction(txUri);
+
         URI commitTxUri = URI.create(URIUtil.join(txUri, COMMIT_TX));
         // attempts to commit/save a transaction by making request to Fedora
         try (FcrepoResponse response = getClient().post(commitTxUri).perform()) {
@@ -65,9 +69,12 @@ public class TransactionManager {
                 throw new FcrepoOperationFailedException(txUri, statusCode,
                         response.getHeaderValues("Status").toString());
             }
-        } catch (IOException | FcrepoOperationFailedException e) {
+        } catch (Exception e) {
+            binaryTransferService.rollbackTransaction(txUri);
             throw new FedoraException("Unable to commit transaction", e);
         }
+
+        binaryTransferService.postCommitTransaction(txUri);
     }
 
     protected void keepTransactionAlive(URI txUri) {
@@ -95,6 +102,8 @@ public class TransactionManager {
             }
         } catch (IOException | FcrepoOperationFailedException e) {
             throw new FedoraException("Unable to cancel transaction", e);
+        } finally {
+            binaryTransferService.rollbackTransaction(txUri);
         }
     }
 
