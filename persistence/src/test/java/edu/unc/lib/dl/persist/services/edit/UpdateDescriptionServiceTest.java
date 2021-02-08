@@ -49,6 +49,7 @@ import edu.unc.lib.dl.fcrepo4.ContentObject;
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectFactory;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectLoader;
+import edu.unc.lib.dl.fcrepo4.TransactionManager;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.persist.api.storage.StorageLocation;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferSession;
@@ -85,6 +86,8 @@ public class UpdateDescriptionServiceTest {
     private VersionedDatastreamService versioningService;
     @Mock
     private BinaryObject mockDescBin;
+    @Mock
+    private TransactionManager transactionManager;
 
     @Mock
     private AgentPrincipals agent;

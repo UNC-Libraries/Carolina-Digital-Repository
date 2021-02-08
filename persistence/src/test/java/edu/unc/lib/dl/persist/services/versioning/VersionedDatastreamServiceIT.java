@@ -51,6 +51,7 @@ import edu.unc.lib.dl.fcrepo4.BinaryObject;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectFactory;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectLoader;
 import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
+import edu.unc.lib.dl.fcrepo4.TransactionManager;
 import edu.unc.lib.dl.fcrepo4.WorkObject;
 import edu.unc.lib.dl.fedora.ObjectTypeMismatchException;
 import edu.unc.lib.dl.fedora.PID;
@@ -93,6 +94,8 @@ public class VersionedDatastreamServiceIT {
     private RepositoryPIDMinter pidMinter;
     @Autowired
     private RepositoryObjectTreeIndexer treeIndexer;
+    @Autowired
+    private TransactionManager transactionManager;
 
     private IngestSourceManagerImpl sourceManager;
     private Path sourcePath;
@@ -108,6 +111,7 @@ public class VersionedDatastreamServiceIT {
         service.setBinaryTransferService(transferService);
         service.setRepositoryObjectFactory(repoObjFactory);
         service.setRepositoryObjectLoader(repoObjLoader);
+        service.setTransactionManager(transactionManager);
 
         File sourceMappingFile = new File(tmpFolder.getRoot(), "sourceMapping.json");
         FileUtils.writeStringToFile(sourceMappingFile, "[]", "UTF-8");

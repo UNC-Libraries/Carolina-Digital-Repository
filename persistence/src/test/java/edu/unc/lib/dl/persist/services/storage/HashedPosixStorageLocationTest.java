@@ -36,8 +36,11 @@ public class HashedPosixStorageLocationTest extends HashedFilesystemStorageLocat
 
     @Override
     @Before
-    public void setup() {
+    public void setup() throws Exception {
+        storagePath = tmpFolder.newFolder("storage").toPath();
+
         posixLoc = new HashedPosixStorageLocation();
+        posixLoc.setBase(storagePath.toString());
         loc = posixLoc;
     }
 

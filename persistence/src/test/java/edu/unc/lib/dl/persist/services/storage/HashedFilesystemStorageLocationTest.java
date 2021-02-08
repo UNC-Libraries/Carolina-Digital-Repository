@@ -48,7 +48,7 @@ public class HashedFilesystemStorageLocationTest {
 
     @Rule
     public final TemporaryFolder tmpFolder = new TemporaryFolder();
-    private Path storagePath;
+    protected Path storagePath;
 
     protected HashedFilesystemStorageLocation loc;
 
@@ -160,7 +160,7 @@ public class HashedFilesystemStorageLocationTest {
 
         URI currentUri = loc.getCurrentStorageUri(pid);
         assertEquals(expectedUri, currentUri);
-        assertTrue(currentUri.toString().startsWith(storagePath.toUri().toString()));
+        assertTrue(currentUri.toString().startsWith(storagePath.toFile().toURI().toString()));
     }
 
     @Test

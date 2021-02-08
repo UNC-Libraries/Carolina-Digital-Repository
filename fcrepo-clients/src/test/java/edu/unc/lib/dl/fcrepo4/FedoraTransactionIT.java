@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 import java.io.IOException;
 
@@ -32,8 +33,10 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.transfer.BinaryTransferService;
 import edu.unc.lib.dl.rdf.Cdr;
 import edu.unc.lib.dl.rdf.DcElements;
 import edu.unc.lib.dl.rdf.PcdmModels;
@@ -46,9 +49,13 @@ import edu.unc.lib.dl.rdf.PcdmModels;
 public class FedoraTransactionIT extends AbstractFedoraIT {
 
     private Model model;
+    @Mock
+    private BinaryTransferService binaryTransferService;
 
     @Before
     public void init() {
+        initMocks(this);
+        txManager.setBinaryTransferService(binaryTransferService);
         model = ModelFactory.createDefaultModel();
         Resource resc = model.createResource("");
         resc.addProperty(DcElements.title, "Folder Title");

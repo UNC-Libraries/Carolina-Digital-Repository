@@ -30,10 +30,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import edu.unc.lib.dl.fcrepo4.FedoraTransaction;
+import edu.unc.lib.dl.fcrepo4.TransactionManager;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.persist.api.ingest.IngestSource;
 import edu.unc.lib.dl.persist.api.ingest.IngestSourceManager;
@@ -55,6 +58,11 @@ public class BinaryTransferSessionImplTest extends AbstractBinaryTransferTest {
     @Mock
     private StorageLocation storageLoc;
 
+    @Mock
+    protected TransactionManager txManager;
+    protected FedoraTransaction fedoraTransaction;
+    protected final static URI TX_URI = URI.create("http://example.com/tx");
+
     private PID binPid;
     private Path binDestPath;
 
@@ -71,6 +79,13 @@ public class BinaryTransferSessionImplTest extends AbstractBinaryTransferTest {
 
         when(storageLoc.getNewStorageUri(binPid)).thenReturn(binDestPath.toUri());
         when(storageLoc.getId()).thenReturn("loc1");
+    }
+
+    @After
+    public void teardown() throws Exception {
+        if (fedoraTransaction != null) {
+            fedoraTransaction.close();
+        }
     }
 
     @Test
@@ -166,6 +181,8 @@ public class BinaryTransferSessionImplTest extends AbstractBinaryTransferTest {
 
     @Test
     public void replaceBinaryFSToFS() throws Exception {
+        fedoraTransaction = new FedoraTransaction(TX_URI, txManager);
+
         when(ingestSource.getStorageType()).thenReturn(FILESYSTEM);
         when(storageLoc.getStorageType()).thenReturn(FILESYSTEM);
 

@@ -100,6 +100,7 @@
     
     <bean id="transactionManager" class="edu.unc.lib.dl.fcrepo4.TransactionManager">
         <property name="client" ref="fcrepoClient" />
+        <property name="binaryTransferService" ref="binaryTransferService" />
     </bean>
     
     <bean id="aclService" class="org.mockito.Mockito" factory-method="mock">
@@ -110,6 +111,7 @@
         <property name="repositoryObjectLoader" ref="repositoryObjectLoader" />
         <property name="repositoryObjectFactory" ref="repositoryObjectFactory" />
         <property name="binaryTransferService" ref="binaryTransferService" />
+        <property name="transactionManager" ref="transactionManager" />
     </bean>
 
     <bean id="updateDescriptionService" class="edu.unc.lib.dl.persist.services.edit.UpdateDescriptionService" >

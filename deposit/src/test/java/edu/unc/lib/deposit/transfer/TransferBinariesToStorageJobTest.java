@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Bag;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
@@ -573,7 +574,10 @@ public class TransferBinariesToStorageJobTest extends AbstractNormalizationJobTe
     }
 
     private void assertManifestTranferred(List<URI> manifestUris, String name) {
-        URI manifestUri = manifestUris.stream().filter(m -> m.toString().endsWith(name)).findFirst().orElseGet(null);
+        URI manifestUri = manifestUris.stream()
+                .filter(m -> StringUtils.substringAfterLast(m.toString(), "/")
+                        .contains(name))
+                .findFirst().orElseGet(null);
 
         assertTrue(Paths.get(manifestUri).toFile().exists());
         assertTrue(storageLoc.isValidUri(manifestUri));

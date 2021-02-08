@@ -38,6 +38,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import edu.unc.lib.dl.persist.api.transfer.BinaryTransferService;
+
 /**
  *
  * @author harring
@@ -65,6 +67,8 @@ public class TransactionalFcrepoClientTest extends AbstractFedoraTest {
     private CloseableHttpResponse httpResponse;
     @Mock
     private Header header;
+    @Mock
+    private BinaryTransferService binaryTransferService;
 
     @Before
     public void setup() throws Exception {
@@ -74,6 +78,7 @@ public class TransactionalFcrepoClientTest extends AbstractFedoraTest {
         txClient = (TransactionalFcrepoClient) builder.build();
         txManager= new TransactionManager();
         txManager.setClient(txClient);
+        txManager.setBinaryTransferService(binaryTransferService);
         tx = new FedoraTransaction(uri, txManager);
 
         setField(txClient, "httpclient", httpClient);

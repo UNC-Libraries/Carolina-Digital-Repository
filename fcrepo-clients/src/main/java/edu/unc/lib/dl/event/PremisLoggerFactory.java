@@ -21,6 +21,7 @@ import edu.unc.lib.dl.fcrepo4.RepositoryObject;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectFactory;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectLoader;
 import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
+import edu.unc.lib.dl.fcrepo4.TransactionManager;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferService;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferSession;
@@ -37,6 +38,7 @@ public class PremisLoggerFactory {
     private RepositoryObjectLoader repoObjLoader;
     private RepositoryObjectFactory repoObjFactory;
     private BinaryTransferService transferService;
+    private TransactionManager transactionManager;
 
     /**
      * Create a PREMIS logger for events related to the object identified by pid. Events
@@ -68,7 +70,8 @@ public class PremisLoggerFactory {
      * @return new PremisLogger instance
      */
     public PremisLogger createPremisLogger(RepositoryObject repoObject, BinaryTransferSession session) {
-        return new RepositoryPremisLogger(repoObject, session, pidMinter, repoObjLoader, repoObjFactory);
+        return new RepositoryPremisLogger(repoObject, session, pidMinter, repoObjLoader,
+                repoObjFactory, transactionManager);
     }
 
     /**
@@ -94,5 +97,9 @@ public class PremisLoggerFactory {
 
     public void setBinaryTransferService(BinaryTransferService transferService) {
         this.transferService = transferService;
+    }
+
+    public void setTransactionManager(TransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
     }
 }

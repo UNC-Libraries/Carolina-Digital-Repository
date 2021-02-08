@@ -20,6 +20,7 @@ import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.fcrepo.client.FedoraTypes.LDP_NON_RDF_SOURCE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import java.io.InputStream;
 import java.net.URI;
@@ -41,6 +42,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.transfer.BinaryTransferService;
 import edu.unc.lib.dl.test.TestHelper;
 import edu.unc.lib.dl.util.RDFModelUtil;
 
@@ -62,7 +64,9 @@ public class TransactionalFcrepoClientIT {
     public void setup() {
         TestHelper.setContentBase(BASE_PATH);
 
+        BinaryTransferService bts = mock(BinaryTransferService.class);
         txManager = new TransactionManager();
+        txManager.setBinaryTransferService(bts);
     }
 
     @Test

@@ -42,6 +42,10 @@ public class TransactionManager {
     private BinaryTransferService binaryTransferService;
 
     public FedoraTransaction startTransaction() throws FedoraException {
+        if (FedoraTransaction.isStillAlive()) {
+            FedoraTransaction rootTx = FedoraTransaction.rootTxThread.get();
+            return new FedoraTransaction(rootTx.getTxUri(), this);
+        }
         URI repoBase = URI.create(RepositoryPaths.getBaseUri());
         // appends suffix for creating transaction
         URI createTxUri = URI.create(URIUtil.join(repoBase, CREATE_TX));
@@ -115,4 +119,7 @@ public class TransactionManager {
         return client;
     }
 
+    public void setBinaryTransferService(BinaryTransferService binaryTransferService) {
+        this.binaryTransferService = binaryTransferService;
+    }
 }

@@ -16,6 +16,7 @@
 package edu.unc.lib.dl.persist.services.versioning;
 
 import static edu.unc.lib.dl.model.DatastreamPids.getDatastreamHistoryPid;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,13 +25,16 @@ import java.util.Date;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.jena.rdf.model.Model;
+import org.slf4j.Logger;
 
 import edu.unc.lib.dl.exceptions.InvalidChecksumException;
 import edu.unc.lib.dl.fcrepo4.BinaryObject;
+import edu.unc.lib.dl.fcrepo4.FedoraTransaction;
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fcrepo4.RepositoryObject;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectFactory;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectLoader;
+import edu.unc.lib.dl.fcrepo4.TransactionManager;
 import edu.unc.lib.dl.fedora.NotFoundException;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.fedora.ServiceException;
@@ -47,9 +51,12 @@ import edu.unc.lib.dl.persist.api.transfer.BinaryTransferSession;
  * @author bbpennel
  */
 public class VersionedDatastreamService {
+    private static final Logger log = getLogger(VersionedDatastreamService.class);
+
     private RepositoryObjectLoader repoObjLoader;
     private RepositoryObjectFactory repoObjFactory;
     private BinaryTransferService transferService;
+    private TransactionManager transactionManager;
     private static final PidLockManager lockManager = PidLockManager.getDefaultPidLockManager();
 
     /**
@@ -66,12 +73,17 @@ public class VersionedDatastreamService {
         BinaryObject dsObj = getBinaryObject(dsPid);
 
         // Get a session for transferring the binary and its history
-        BinaryTransferSession session = getTransferSession(newVersion, dsObj);
+        BinaryTransferSession session = null;
+        FedoraTransaction tx = null;
         try {
+            session = getTransferSession(newVersion, dsObj);
+            tx = transactionManager.startTransaction();
             // if datastream is new, go ahead and create it
             if (dsObj == null) {
+                log.debug("Adding head version for datastream {}", dsPid);
                 return updateHeadVersion(newVersion, session);
             } else {
+                log.debug("Adding history and head version for datastream {}", dsPid);
                 // Datastream already exists
                 // Add the current head version to the history log
                 updateDatastreamHistory(session, dsObj);
@@ -79,10 +91,18 @@ public class VersionedDatastreamService {
                 // Replace the head version with the new content
                 return updateHeadVersion(newVersion, session);
             }
+        } catch (Exception e) {
+            if (tx != null) {
+                tx.cancelAndIgnore();
+            }
+            throw e;
         } finally {
             dsLock.unlock();
+            if (tx != null) {
+                tx.close();
+            }
             // Only close the transfer session if it was created within this method call
-            if (newVersion.getTransferSession() == null) {
+            if (session != null && newVersion.getTransferSession() == null) {
                 session.close();
             }
         }
@@ -208,6 +228,10 @@ public class VersionedDatastreamService {
 
     public void setBinaryTransferService(BinaryTransferService transferService) {
         this.transferService = transferService;
+    }
+
+    public void setTransactionManager(TransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
     }
 
     /**

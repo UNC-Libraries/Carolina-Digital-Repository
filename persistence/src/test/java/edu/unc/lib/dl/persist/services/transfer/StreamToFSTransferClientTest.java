@@ -48,6 +48,7 @@ import edu.unc.lib.dl.fcrepo4.FedoraTransaction;
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fcrepo4.TransactionManager;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.storage.StorageLocation;
 import edu.unc.lib.dl.persist.api.transfer.BinaryAlreadyExistsException;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferException;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferOutcome;
@@ -70,7 +71,7 @@ public class StreamToFSTransferClientTest {
     public final TemporaryFolder tmpFolder = new TemporaryFolder();
     protected Path sourcePath;
     protected Path storagePath;
-    private HashedFilesystemStorageLocation storageLoc;
+    protected StorageLocation storageLoc;
 
     protected PID binPid;
 
@@ -86,9 +87,10 @@ public class StreamToFSTransferClientTest {
         sourcePath = tmpFolder.newFolder("source").toPath();
         storagePath = tmpFolder.newFolder("storage").toPath();
 
-        storageLoc = new HashedFilesystemStorageLocation();
-        storageLoc.setBase(storagePath.toString());
-        storageLoc.setId("loc1");
+        HashedFilesystemStorageLocation hashedLoc = new HashedFilesystemStorageLocation();
+        hashedLoc.setBase(storagePath.toString());
+        hashedLoc.setId("loc1");
+        storageLoc = hashedLoc;
 
         client = new StreamToFSTransferClient(storageLoc);
 

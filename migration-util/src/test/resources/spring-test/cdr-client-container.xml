@@ -109,6 +109,7 @@
     
     <bean id="txManager" class="edu.unc.lib.dl.fcrepo4.TransactionManager">
         <property name="client" ref="fcrepoClient" />
+        <property name="binaryTransferService" ref="binaryTransferService" />
     </bean>
     
     <bean id="pathIndex" class="edu.unc.lib.dcr.migration.paths.PathIndex"

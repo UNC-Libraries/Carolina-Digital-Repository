@@ -38,10 +38,12 @@ import org.slf4j.Logger;
 
 import edu.unc.lib.dl.exceptions.RepositoryException;
 import edu.unc.lib.dl.fcrepo4.BinaryObject;
+import edu.unc.lib.dl.fcrepo4.FedoraTransaction;
 import edu.unc.lib.dl.fcrepo4.RepositoryObject;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectFactory;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectLoader;
 import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
+import edu.unc.lib.dl.fcrepo4.TransactionManager;
 import edu.unc.lib.dl.fedora.NotFoundException;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.model.DatastreamPids;
@@ -70,18 +72,20 @@ public class RepositoryPremisLogger implements PremisLogger {
     private RepositoryObjectLoader repoObjLoader;
     private RepositoryObjectFactory repoObjFactory;
     private BinaryTransferSession transferSession;
+    private TransactionManager transactionManager;
 
     private RepositoryObject repoObject;
     private boolean closed = false;
 
     public RepositoryPremisLogger(RepositoryObject repoObject, BinaryTransferSession transferSession,
             RepositoryPIDMinter pidMinter, RepositoryObjectLoader repoObjLoader,
-            RepositoryObjectFactory repoObjFactory) {
+            RepositoryObjectFactory repoObjFactory, TransactionManager transactionManager) {
         this.repoObject = repoObject;
         this.pidMinter = pidMinter;
         this.repoObjLoader = repoObjLoader;
         this.repoObjFactory = repoObjFactory;
         this.transferSession = transferSession;
+        this.transactionManager = transactionManager;
     }
 
     @Override
@@ -174,10 +178,18 @@ public class RepositoryPremisLogger implements PremisLogger {
 
     private BinaryObject updateOrCreateLog(InputStream contentStream) {
         PID logPid = getMdEventsPid(repoObject.getPid());
-        BinaryTransferOutcome outcome = transferSession.transferReplaceExisting(logPid, contentStream);
+        FedoraTransaction tx = transactionManager.startTransaction();
+        try {
+            BinaryTransferOutcome outcome = transferSession.transferReplaceExisting(logPid, contentStream);
 
-        return repoObjFactory.createOrUpdateBinary(logPid, outcome.getDestinationUri(),
-                MD_EVENTS.getDefaultFilename(), MD_EVENTS.getMimetype(), outcome.getSha1(), null, null);
+            return repoObjFactory.createOrUpdateBinary(logPid, outcome.getDestinationUri(),
+                    MD_EVENTS.getDefaultFilename(), MD_EVENTS.getMimetype(), outcome.getSha1(), null, null);
+        } catch (Exception e) {
+            tx.cancelAndIgnore();
+            throw e;
+        } finally {
+            tx.close();
+        }
     }
 
     @Override

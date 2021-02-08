@@ -17,6 +17,7 @@
         <property name="repositoryObjectLoader" ref="repositoryObjectLoader" />
         <property name="repositoryObjectFactory" ref="repositoryObjectFactory" />
         <property name="binaryTransferService" ref="binaryTransferService" />
+        <property name="transactionManager" ref="transactionManager" />
     </bean>
     
     <bean id="updateService" class="edu.unc.lib.dl.persist.services.edit.UpdateDescriptionService" >

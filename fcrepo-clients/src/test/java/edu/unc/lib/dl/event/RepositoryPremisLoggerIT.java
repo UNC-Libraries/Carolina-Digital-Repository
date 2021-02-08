@@ -57,6 +57,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import edu.unc.lib.dl.fcrepo4.AbstractFedoraIT;
 import edu.unc.lib.dl.fcrepo4.BinaryObject;
 import edu.unc.lib.dl.fcrepo4.RepositoryObject;
+import edu.unc.lib.dl.fcrepo4.TransactionManager;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.model.AgentPids;
 import edu.unc.lib.dl.model.DatastreamPids;
@@ -90,6 +91,8 @@ public class RepositoryPremisLoggerIT extends AbstractFedoraIT {
     private BinaryTransferSession mockSession;
     @Autowired
     private PremisLoggerFactory premisLoggerFactory;
+    @Autowired
+    private TransactionManager transactionManager;
 
     @Before
     public void init() throws Exception {
@@ -124,7 +127,7 @@ public class RepositoryPremisLoggerIT extends AbstractFedoraIT {
 
     private void initPremisLogger(RepositoryObject repoObj) {
         logger = new RepositoryPremisLogger(parentObject, mockSession, pidMinter,
-                repoObjLoader, repoObjFactory);
+                repoObjLoader, repoObjFactory, transactionManager);
     }
 
     @Test
@@ -176,7 +179,7 @@ public class RepositoryPremisLoggerIT extends AbstractFedoraIT {
 
         // Make a new logger to make sure everything is clean
         PremisLogger retrieveLogger = new RepositoryPremisLogger(parentObject, mockSession,
-                pidMinter, repoObjLoader, repoObjFactory);
+                pidMinter, repoObjLoader, repoObjFactory, transactionManager);
 
         Model logModel = retrieveLogger.getEventsModel();
         Resource logEvent1Resc = logModel.getResource(event1Resc.getURI());
@@ -215,7 +218,7 @@ public class RepositoryPremisLoggerIT extends AbstractFedoraIT {
 
         // make sure that there are no events in premis log before the writes
         PremisLogger retrieveLogger = new RepositoryPremisLogger(parentObject, mockSession,
-                pidMinter, repoObjLoader, repoObjFactory);
+                pidMinter, repoObjLoader, repoObjFactory, transactionManager);
         Model initialLogModel = retrieveLogger.getEventsModel();
         assertFalse("New premis already contains events", initialLogModel.listObjects().hasNext());
 
@@ -283,7 +286,7 @@ public class RepositoryPremisLoggerIT extends AbstractFedoraIT {
 
         // make sure that there are no events in premis log before the writes
         PremisLogger retrieveLogger = new RepositoryPremisLogger(parentObject, mockSession,
-                pidMinter, repoObjLoader, repoObjFactory);
+                pidMinter, repoObjLoader, repoObjFactory, transactionManager);
         Model initialLogModel = retrieveLogger.getEventsModel();
         assertFalse("New premis already contains events", initialLogModel.listObjects().hasNext());
 
@@ -326,7 +329,7 @@ public class RepositoryPremisLoggerIT extends AbstractFedoraIT {
 
         // make sure that there are no events in premis log before the writes
         PremisLogger retrieveLogger = new RepositoryPremisLogger(parentObject, mockSession,
-                pidMinter, repoObjLoader, repoObjFactory);
+                pidMinter, repoObjLoader, repoObjFactory, transactionManager);
         Model initialLogModel = retrieveLogger.getEventsModel();
         assertFalse("New premis already contains events", initialLogModel.listObjects().hasNext());
 
@@ -404,7 +407,7 @@ public class RepositoryPremisLoggerIT extends AbstractFedoraIT {
 
         // make sure that there are no events in premis log before the writes
         PremisLogger retrieveLogger = new RepositoryPremisLogger(parentObject, mockSession,
-                pidMinter, repoObjLoader, repoObjFactory);
+                pidMinter, repoObjLoader, repoObjFactory, transactionManager);
         Model initialLogModel = retrieveLogger.getEventsModel();
         assertFalse("New premis already contains events", initialLogModel.listObjects().hasNext());
 

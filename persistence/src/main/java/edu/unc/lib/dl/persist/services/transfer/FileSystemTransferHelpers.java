@@ -109,7 +109,7 @@ public class FileSystemTransferHelpers {
                     .filter(path -> path.getFileName().toString().startsWith(namePrefix))
                     .max(Comparator.comparing(String::valueOf))
                     .get();
-            return recentPath.toUri().normalize();
+            return recentPath.toFile().toURI().normalize();
         } catch (NoSuchFileException | NoSuchElementException e) {
             return null;
         } catch (IOException e) {

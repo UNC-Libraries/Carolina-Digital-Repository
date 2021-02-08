@@ -16,10 +16,8 @@
 package edu.unc.lib.dl.persist.services.transfer;
 
 import static edu.unc.lib.dl.model.DatastreamPids.getOriginalFilePid;
-import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import java.io.InputStream;
@@ -27,12 +25,10 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferOutcome;
@@ -45,9 +41,6 @@ public class StreamToPosixTransferClientTest extends StreamToFSTransferClientTes
 
     private StreamToPosixTransferClient posixClient;
 
-    @Mock
-    private HashedPosixStorageLocation storageLoc;
-
     @Override
     @Before
     public void setup() throws Exception {
@@ -55,28 +48,27 @@ public class StreamToPosixTransferClientTest extends StreamToFSTransferClientTes
         tmpFolder.create();
         storagePath = tmpFolder.newFolder("storage").toPath();
 
+        HashedPosixStorageLocation hashedLoc = new HashedPosixStorageLocation();
+        hashedLoc.setBase(storagePath.toString());
+        hashedLoc.setId("loc1");
+        storageLoc = hashedLoc;
+
         this.posixClient = new StreamToPosixTransferClient(storageLoc);
         this.client = posixClient;
 
         binPid = getOriginalFilePid(PIDs.get(TEST_UUID));
-        binDestPath = storagePath.resolve(binPid.getComponentId());
-
-        when(storageLoc.getNewStorageUri(binPid)).thenReturn(binDestPath.toUri());
-        when(storageLoc.getPermissions()).thenReturn(null);
     }
 
     @Test
     public void transfer_NewFile_WithPermissions() throws Exception {
-        when(storageLoc.getPermissions()).thenReturn(new HashSet<>(asList(
-                PosixFilePermission.OWNER_READ,
-                PosixFilePermission.OWNER_WRITE)));
+        ((HashedPosixStorageLocation) storageLoc).setPermissions("0600");
 
         InputStream sourceStream = toStream(STREAM_CONTENT);
 
         BinaryTransferOutcome outcome = client.transfer(binPid, sourceStream);
         URI binUri = outcome.getDestinationUri();
 
-        assertContent(binDestPath, STREAM_CONTENT);
+        assertContent(outcome, STREAM_CONTENT);
 
         Set<PosixFilePermission> perms = Files.getPosixFilePermissions(Paths.get(binUri));
         assertEquals(2, perms.size());
