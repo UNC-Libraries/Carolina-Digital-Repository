@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import edu.unc.lib.dl.fedora.NotFoundException;
 import edu.unc.lib.dl.search.solr.model.BriefObjectMetadata;
@@ -57,6 +58,14 @@ public class MultiSelectFacetListService extends AbstractQueryService {
         // Turning off rollup because it is really slow
         searchState.setRollup(false);
 
+        // Trim out retrieval of all facets which are also filtered, since they will be loaded separately
+        Set<String> facetFilterSet = searchState.getFacets().keySet();
+        if (facetFilterSet.size() > 0) {
+            List<String> toRetrieve = searchState.getFacetsToRetrieve().stream()
+                    .filter(f -> !facetFilterSet.contains(f)).collect(Collectors.toList());
+            searchState.setFacetsToRetrieve(toRetrieve);
+        }
+
         // Calculate facets with facet filters applied
         SearchRequest facetRequest = new SearchRequest(searchState, searchRequest.getAccessGroups(), true);
 
@@ -67,10 +76,15 @@ public class MultiSelectFacetListService extends AbstractQueryService {
         resultResponse.setSelectedContainer(selectedContainer);
         FacetFieldList resultFacets = resultResponse.getFacetFields();
 
-        // For each facet selected in the original search state, overwrite facet list with facet results as
+        // For each facet selected in the original search state, add facet list with results as
         // if the that facet were not selected
         for (Entry<String, List<SearchFacet>> facetEntry: searchRequest.getSearchState().getFacets().entrySet()) {
             String facetName = facetEntry.getKey();
+            // Skip retrieval of facets that are filtered but not being retrieved in original request
+            if (!searchRequest.getSearchState().getFacetsToRetrieve().contains(facetName)) {
+                continue;
+            }
+
             SearchState selectedState = (SearchState) searchState.clone();
             selectedState.getFacets().remove(facetName);
 
@@ -78,42 +92,45 @@ public class MultiSelectFacetListService extends AbstractQueryService {
             SearchRequest selectedRequest = new SearchRequest(selectedState, searchRequest.getAccessGroups(), true);
             SearchResultResponse selectedResponse = searchService.getSearchResults(selectedRequest);
 
-            int index = FacetFieldList.indexOf(resultFacets, facetName);
-            if (index == -1) {
-                continue;
-            }
             // For MultivaluedHierarchicalFacet need to pull in the facets for child tiers
             if (FacetFieldUtil.facetIsOfType(facetEntry.getValue(), MultivaluedHierarchicalFacet.class)) {
-                List<SearchFacet> merged = new ArrayList<>(selectedResponse.getFacetFields().get(0).getValues());
-                Set<String> alreadyRetrieved = new HashSet<>();
-                for (SearchFacet selectedFacet: facetEntry.getValue()) {
-                    MultivaluedHierarchicalFacet hierFacet = (MultivaluedHierarchicalFacet) selectedFacet;
-                    // Since no facets currently use more than 2 tiers, lazily only retrieve results one tier down
-                    String facetValue = hierFacet.getFacetNodes().get(0).getFacetValue();
-                    // Skip if multiple selected values would retrieve same parent set
-                    if (alreadyRetrieved.contains(facetValue)) {
-                        continue;
-                    }
-                    alreadyRetrieved.add(facetValue);
-                    MultivaluedHierarchicalFacet tierFacet = new MultivaluedHierarchicalFacet(
-                            facetName, hierFacet.getFacetNodes().get(0).getFacetValue());
-
-                    SearchState selectedState2 = (SearchState) searchState.clone();
-                    selectedState2.setFacet(tierFacet);
-                    selectedState2.setFacetsToRetrieve(Arrays.asList(facetName));
-
-                    SearchRequest selectedRequest2 = new SearchRequest(
-                            selectedState2, searchRequest.getAccessGroups(), true);
-                    SearchResultResponse selectedResponse2 = searchService.getSearchResults(selectedRequest2);
-                    merged.addAll(selectedResponse2.getFacetFields().get(0).getValues());
-                }
-                resultFacets.set(index, new FacetFieldObject(facetName, merged));
+                List<SearchFacet> merged = getMergedHierarchivalFacetValues(facetName, facetEntry.getValue(),
+                        selectedResponse, searchRequest);
+                resultFacets.add(new FacetFieldObject(facetName, merged));
             } else {
-                resultFacets.set(index, selectedResponse.getFacetFields().get(0));
+                resultFacets.add(selectedResponse.getFacetFields().get(0));
             }
         }
 
         return resultResponse;
+    }
+
+    private List<SearchFacet> getMergedHierarchivalFacetValues(String facetName, List<SearchFacet> filterValues,
+            SearchResultResponse baseResponse, SearchRequest originalRequest) {
+        List<SearchFacet> merged = new ArrayList<>(baseResponse.getFacetFields().get(0).getValues());
+        Set<String> alreadyRetrieved = new HashSet<>();
+        for (SearchFacet selectedFacet: filterValues) {
+            MultivaluedHierarchicalFacet hierFacet = (MultivaluedHierarchicalFacet) selectedFacet;
+            // Since no facets currently use more than 2 tiers, lazily only retrieve results one tier down
+            String facetValue = hierFacet.getFacetNodes().get(0).getFacetValue();
+            // Skip if multiple selected values would retrieve same parent set
+            if (alreadyRetrieved.contains(facetValue)) {
+                continue;
+            }
+            alreadyRetrieved.add(facetValue);
+            MultivaluedHierarchicalFacet tierFacet = new MultivaluedHierarchicalFacet(
+                    facetName, hierFacet.getFacetNodes().get(0).getFacetValue());
+
+            SearchState selectedState = (SearchState) baseResponse.getSearchState().clone();
+            selectedState.setFacet(tierFacet);
+            selectedState.setFacetsToRetrieve(Arrays.asList(facetName));
+
+            SearchRequest selectedRequest = new SearchRequest(
+                    selectedState, originalRequest.getAccessGroups(), true);
+            SearchResultResponse selectedResponse = searchService.getSearchResults(selectedRequest);
+            merged.addAll(selectedResponse.getFacetFields().get(0).getValues());
+        }
+        return merged;
     }
 
     public void setSearchService(SolrSearchService searchService) {

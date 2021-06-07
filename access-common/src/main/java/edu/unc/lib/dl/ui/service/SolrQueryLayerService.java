@@ -39,10 +39,7 @@ import edu.unc.lib.dl.acl.util.PrincipalClassifier;
 import edu.unc.lib.dl.acl.util.UserRole;
 import edu.unc.lib.dl.search.solr.model.BriefObjectMetadata;
 import edu.unc.lib.dl.search.solr.model.CaseInsensitiveFacet;
-import edu.unc.lib.dl.search.solr.model.CutoffFacet;
 import edu.unc.lib.dl.search.solr.model.FacetFieldObject;
-import edu.unc.lib.dl.search.solr.model.GenericFacet;
-import edu.unc.lib.dl.search.solr.model.SearchFacet;
 import edu.unc.lib.dl.search.solr.model.SearchRequest;
 import edu.unc.lib.dl.search.solr.model.SearchResultResponse;
 import edu.unc.lib.dl.search.solr.model.SearchState;
@@ -117,89 +114,6 @@ public class SolrQueryLayerService extends SolrSearchService {
             }
         }
         return results;
-    }
-
-    /**
-     * Retrieves the facet list for the search defined by searchState. The facet results optionally can ignore
-     * hierarchical cutoffs.
-     *
-     * @param searchRequest
-     * @return
-     */
-    public SearchResultResponse getFacetList(SearchRequest searchRequest) {
-        SearchState searchState = (SearchState) searchRequest.getSearchState().clone();
-
-        LOG.debug("Retrieving facet list");
-        BriefObjectMetadata selectedContainer = null;
-        if (searchRequest.getRootPid() != null) {
-            selectedContainer = addSelectedContainer(searchRequest.getRootPid(), searchState,
-                    searchRequest.isApplyCutoffs(), searchRequest.getAccessGroups());
-        } else {
-            CutoffFacet ancestorPath;
-            if (!searchState.getFacets().containsKey(SearchFieldKeys.ANCESTOR_PATH.name())) {
-                ancestorPath = new CutoffFacet(SearchFieldKeys.ANCESTOR_PATH.name(), "2,*");
-                ancestorPath.setFacetCutoff(3);
-                searchState.setFacet(SearchFieldKeys.ANCESTOR_PATH, ancestorPath);
-            } else {
-                List<SearchFacet> ancestorFacets = searchState.getFacets().get(SearchFieldKeys.ANCESTOR_PATH.name());
-                ancestorPath = (CutoffFacet) ancestorFacets.get(0);
-                if (ancestorPath.getFacetCutoff() == null) {
-                    ancestorPath.setFacetCutoff(ancestorPath.getHighestTier() + 1);
-                }
-            }
-            if (!searchRequest.isApplyCutoffs()) {
-                ancestorPath.setCutoff(null);
-            }
-        }
-
-        // Turning off rollup because it is really slow
-        searchState.setRollup(false);
-
-        SearchRequest facetRequest = new SearchRequest(searchState, searchRequest.getAccessGroups(), true);
-
-        searchState.setRowsPerPage(0);
-        searchState.setResourceTypes(null);
-
-        SearchResultResponse resultResponse = getSearchResults(facetRequest);
-        resultResponse.setSelectedContainer(selectedContainer);
-
-        // If this facet list contains parent collections, then retrieve display names for them
-        if (resultResponse.getFacetFields() != null && (searchState.getFacetsToRetrieve() == null
-                || searchState.getFacetsToRetrieve().contains(SearchFieldKeys.PARENT_COLLECTION.name()))) {
-
-            FacetFieldObject parentCollectionFacet = resultResponse.getFacetFields().get(
-                    SearchFieldKeys.PARENT_COLLECTION.name());
-
-            if (parentCollectionFacet != null) {
-                for (SearchFacet searchFacet : parentCollectionFacet.getValues()) {
-                    GenericFacet pidFacet = (GenericFacet) searchFacet;
-                    String parentName = pathFactory.getName(pidFacet.getSearchValue());
-
-                    if (parentName != null) {
-                        pidFacet.setFieldName(SearchFieldKeys.ANCESTOR_PATH.name());
-                        pidFacet.setDisplayValue(parentName);
-                    }
-                }
-            }
-        }
-
-        return resultResponse;
-    }
-
-    /**
-     * Returns the number of children plus a facet list for the parent defined by ancestorPath.
-     *
-     * @param ancestorPath
-     * @param accessGroups
-     * @return
-     */
-    public SearchResultResponse getFullRecordSupplementalData(CutoffFacet ancestorPath, AccessGroupSet accessGroups,
-            List<String> facetsToRetrieve) {
-        SearchState searchState = searchStateFactory.createSearchState();
-        searchState.addFacet(ancestorPath);
-        searchState.setRowsPerPage(0);
-        searchState.setFacetsToRetrieve(facetsToRetrieve);
-        return getFacetList(new SearchRequest(searchState, accessGroups, true));
     }
 
     /**

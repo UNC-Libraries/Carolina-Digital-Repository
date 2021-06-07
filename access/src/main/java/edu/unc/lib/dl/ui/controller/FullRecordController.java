@@ -21,7 +21,6 @@ import static edu.unc.lib.dl.xml.SecureXMLFactory.createSAXBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -57,13 +56,10 @@ import edu.unc.lib.dl.fedora.FedoraException;
 import edu.unc.lib.dl.fedora.NotFoundException;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.search.solr.model.BriefObjectMetadataBean;
-import edu.unc.lib.dl.search.solr.model.FacetFieldObject;
-import edu.unc.lib.dl.search.solr.model.SearchResultResponse;
 import edu.unc.lib.dl.search.solr.model.SimpleIdRequest;
 import edu.unc.lib.dl.search.solr.service.ChildrenCountService;
 import edu.unc.lib.dl.search.solr.service.GetCollectionIdService;
 import edu.unc.lib.dl.search.solr.service.NeighborQueryService;
-import edu.unc.lib.dl.search.solr.util.SearchFieldKeys;
 import edu.unc.lib.dl.ui.exception.InvalidRecordRequestException;
 import edu.unc.lib.dl.ui.exception.RenderViewException;
 import edu.unc.lib.dl.ui.service.AccessCopiesService;
@@ -197,37 +193,9 @@ public class FullRecordController extends AbstractSolrSearchController {
         // Get additional information depending on the type of object since the user has access
         String resourceType = briefObject.getResourceType();
         boolean retrieveChildrenCount = !resourceType.equals(searchSettings.resourceTypeFile);
-        boolean retrieveFacets = resourceType.equals(searchSettings.resourceTypeFolder)
-                || resourceType.equals(searchSettings.resourceTypeCollection);
 
         if (retrieveChildrenCount) {
             briefObject.getCountMap().put("child", childrenCountService.getChildrenCount(briefObject, principals));
-        }
-
-        if (retrieveFacets) {
-            List<String> facetsToRetrieve = null;
-            if (briefObject.getResourceType().equals(searchSettings.resourceTypeCollection)) {
-                facetsToRetrieve = new ArrayList<>(searchSettings.collectionBrowseFacetNames);
-            } else if (briefObject.getResourceType().equals(searchSettings.resourceTypeAggregate)) {
-                facetsToRetrieve = new ArrayList<>();
-                facetsToRetrieve.add(SearchFieldKeys.CONTENT_TYPE.name());
-            }
-
-            LOG.debug("Retrieving supplemental information for container at path "
-                    + briefObject.getPath().toString());
-            SearchResultResponse resultResponse = queryLayer.getFullRecordSupplementalData(briefObject.getPath(),
-                    principals, facetsToRetrieve);
-
-            boolean hasFacets = false;
-            for (FacetFieldObject facetField : resultResponse.getFacetFields()) {
-                if (facetField.getValues().size() > 0) {
-                    hasFacets = true;
-                    break;
-                }
-            }
-
-            model.addAttribute("hasFacetFields", hasFacets);
-            model.addAttribute("facetFields", resultResponse.getFacetFields());
         }
 
         if (resourceType.equals(searchSettings.resourceTypeFolder) ||
