@@ -29,9 +29,9 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.activemq.util.ByteArrayInputStream;
-import org.jgroups.util.UUID;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

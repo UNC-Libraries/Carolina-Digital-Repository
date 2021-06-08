@@ -69,7 +69,6 @@ import edu.unc.lib.dl.test.TestHelper;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextHierarchy({
-    @ContextConfiguration("/spring-test/test-fedora-container.xml"),
     @ContextConfiguration("/spring-test/cdr-client-container.xml")
 })
 public class BinaryTransferServiceImplIT {

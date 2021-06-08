@@ -10,6 +10,9 @@
         <artifactId>cdr</artifactId>
         <version>5.0-SNAPSHOT</version>
     </parent>
+    <properties>
+        <jetty.users.file>${project.build.directory}/test-classes/jetty-users.properties</jetty.users.file>
+    </properties>
 
     <build>
         <finalName>cdr-persistence</finalName>
@@ -19,9 +22,15 @@
                 <directory>../etc</directory>
                 <includes>
                     <include>server.properties</include>
+                    <include>fcrepo</include>
                 </includes>
             </testResource>
             <testResource>
+                <filtering>true</filtering>
+                <directory>../etc/fcrepo</directory>
+            </testResource>
+            <testResource>
+                <filtering>true</filtering>
                 <directory>src/test/resources</directory>
             </testResource>
         </testResources>
@@ -29,6 +38,127 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+            <!-- Launch jetty for integration testing with fedora -->
+              <plugin>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-maven-plugin</artifactId>
+                <configuration>
+                    <jvmArgs>-Xmx2056</jvmArgs>
+                    <supportedPackagings>jar</supportedPackagings>
+                    <systemProperties>
+                        <force>true</force>
+                        <systemProperty>
+                            <name>fcrepo.home</name>
+                            <value>${project.build.directory}/fcrepo-data</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>fcrepo.dynamic.test.port</name>
+                            <value>${fcrepo.dynamic.test.port}</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>fcrepo.jms.enabled</name>
+                            <value>false</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>fcrepo.home</name>
+                            <value>${project.build.directory}/fcrepo-home</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>fcrepo.external.content.allowed</name>
+                            <value>${project.build.directory}/test-classes/allowed_external_paths.txt</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>fcrepo.activemq.directory</name>
+                            <value>${project.build.directory}/active-mq</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>fcrepo.modeshape.configuration</name>
+                            <value>file:${project.build.directory}/test-classes/repository-test.json</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>fcrepo.spring.eventing.configuration</name>
+                            <value>file:${project.build.directory}/test-classes/noop.xml</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>fcrepo.spring.jms.configuration</name>
+                            <value>file:${project.build.directory}/test-classes/noop.xml</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>fcrepo.spring.transactions.configuration</name>
+                            <value>file:${project.build.directory}/test-classes/noop.xml</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>fcrepo.log</name>
+                            <value>ERROR</value>
+                        </systemProperty>
+                    </systemProperties>
+                    <scanIntervalSeconds>10</scanIntervalSeconds>
+                    <stopKey>STOP</stopKey>
+                    <stopPort>${jetty.dynamic.stop.port}</stopPort>
+                    <daemon>true</daemon>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>start-jetty</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>start</goal>
+                        </goals>
+                        <configuration>
+                            <jettyXml>${project.build.directory}/test-classes/jetty-test.xml</jettyXml>
+                            <!-- <webXml>${project.build.directory}/test-classes/spring-test/web.xml</webXml> -->
+                            <scanIntervalSeconds>0</scanIntervalSeconds>
+                            <daemon>true</daemon>
+                            <contextHandlers>
+                                <contextHandler
+                                    implementation="org.eclipse.jetty.maven.plugin.JettyWebAppContext">
+                                    <war>${project.build.directory}/fcrepo.war</war>
+                                    <contextPath>/fcrepo</contextPath>
+                                </contextHandler>
+                            </contextHandlers>
+                        </configuration>
+                    </execution>
+            
+                    <execution>
+                        <id>stop-jetty</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>stop</goal>
+                        </goals>
+                        <configuration>
+                            <stopPort>${jetty.dynamic.stop.port}</stopPort>
+                        </configuration>
+                    </execution>
+            
+                </executions>
+            </plugin>
+
+            <!--Bring in fcrepo webapp for integration testing -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.fcrepo</groupId>
+                                    <artifactId>fcrepo-webapp</artifactId>
+                                    <version>${fcrepo4.version}</version>
+                                    <type>war</type>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                    <destFileName>fcrepo.war</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -165,7 +295,7 @@
             <artifactId>bagit</artifactId>
         </dependency>
         <!-- integration testing -->
-        <dependency>
+        <!-- <dependency>
             <groupId>org.fcrepo</groupId>
             <artifactId>fcrepo-http-commons</artifactId>
             <scope>test</scope>
@@ -200,7 +330,7 @@
         <dependency>
             <groupId>org.fcrepo</groupId>
             <artifactId>fcrepo-http-api</artifactId>
-        </dependency>
+        </dependency> -->
         <dependency>
             <groupId>edu.unc.lib.cdr</groupId>
             <artifactId>fcrepo-clients</artifactId>

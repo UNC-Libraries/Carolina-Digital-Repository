@@ -27,8 +27,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.UUID;
 
-import org.jgroups.util.UUID;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

@@ -57,11 +57,12 @@ import edu.unc.lib.dl.test.TestHelper;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextHierarchy({
-    @ContextConfiguration("/spring-test/test-fedora-container.xml"),
     @ContextConfiguration("/spring-test/cdr-client-container.xml"),
     @ContextConfiguration("/spring-test/import-job-it.xml")
 })
 public class UpdateDescriptionServiceIT {
+    @Autowired
+    private String baseAddress;
     @Autowired
     private RepositoryObjectFactory repoObjFactory;
 
@@ -75,7 +76,7 @@ public class UpdateDescriptionServiceIT {
     public void init_() throws Exception {
         initMocks(this);
 
-        TestHelper.setContentBase("http://localhost:48085/rest/");
+        TestHelper.setContentBase(baseAddress);
     }
 
     @Test

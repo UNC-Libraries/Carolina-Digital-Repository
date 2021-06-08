@@ -98,7 +98,6 @@ import edu.unc.lib.dl.util.JMSMessageUtil.CDRActions;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextHierarchy({
-    @ContextConfiguration("/spring-test/test-fedora-container.xml"),
     @ContextConfiguration("/spring-test/cdr-client-container.xml"),
     @ContextConfiguration("/spring-test/staff-role-service-container.xml"),
 })

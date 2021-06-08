@@ -32,7 +32,7 @@ import java.util.Collection;
 import java.util.UUID;
 
 import org.apache.activemq.util.ByteArrayInputStream;
-import org.apache.tika.io.IOUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;

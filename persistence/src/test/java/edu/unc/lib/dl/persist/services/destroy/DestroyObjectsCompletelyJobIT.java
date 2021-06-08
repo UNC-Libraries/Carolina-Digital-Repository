@@ -96,7 +96,6 @@ import edu.unc.lib.dl.util.ResourceType;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextHierarchy({
-    @ContextConfiguration("/spring-test/test-fedora-container.xml"),
     @ContextConfiguration("/spring-test/cdr-client-container.xml"),
     @ContextConfiguration("/spring-test/acl-service-context.xml"),
     @ContextConfiguration("/spring-test/destroy-completely-it-context.xml")
