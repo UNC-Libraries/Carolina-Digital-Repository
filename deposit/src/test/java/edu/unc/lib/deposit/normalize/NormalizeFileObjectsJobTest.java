@@ -46,13 +46,13 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import edu.unc.lib.deposit.fcrepo4.AbstractDepositJobTest;
-import edu.unc.lib.dl.event.PremisEventBuilder;
-import edu.unc.lib.dl.event.PremisLogger;
-import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
+import edu.unc.lib.dl.persist.api.event.PremisLoggerFactory;
 import edu.unc.lib.dl.persist.services.deposit.DepositModelHelpers;
+import edu.unc.lib.dl.persist.services.event.PremisEventBuilderImpl;
 import edu.unc.lib.dl.rdf.Cdr;
 import edu.unc.lib.dl.rdf.CdrAcl;
 import edu.unc.lib.dl.rdf.CdrDeposit;
@@ -78,7 +78,7 @@ public class NormalizeFileObjectsJobTest extends AbstractDepositJobTest {
     private PremisLogger mockPremisLogger;
     @Mock
     private PremisLoggerFactory mockPremisLoggerFactory;
-    private PremisEventBuilder mockPremisEventBuilder;
+    private PremisEventBuilderImpl mockPremisEventBuilder;
 
     @Mock
     private RepositoryPIDMinter pidMinter;
@@ -95,7 +95,7 @@ public class NormalizeFileObjectsJobTest extends AbstractDepositJobTest {
         setField(job, "pidMinter", pidMinter);
         job.init();
 
-        mockPremisEventBuilder = mock(PremisEventBuilder.class, new SelfReturningAnswer());
+        mockPremisEventBuilder = mock(PremisEventBuilderImpl.class, new SelfReturningAnswer());
         when(mockPremisLoggerFactory.createPremisLogger(any(PID.class), any(File.class)))
                 .thenReturn(mockPremisLogger);
         when(mockPremisLogger.buildEvent(any(Resource.class))).thenReturn(mockPremisEventBuilder);

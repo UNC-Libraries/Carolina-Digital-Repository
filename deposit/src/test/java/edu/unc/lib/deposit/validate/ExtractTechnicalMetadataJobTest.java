@@ -71,13 +71,13 @@ import org.slf4j.Logger;
 import org.springframework.util.MimeTypeUtils;
 
 import edu.unc.lib.deposit.fcrepo4.AbstractDepositJobTest;
-import edu.unc.lib.dl.event.PremisEventBuilder;
-import edu.unc.lib.dl.event.PremisLogger;
-import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.exceptions.RepositoryException;
 import edu.unc.lib.dl.fcrepo4.RepositoryPathConstants;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
+import edu.unc.lib.dl.persist.api.event.PremisLoggerFactory;
 import edu.unc.lib.dl.persist.services.deposit.DepositModelHelpers;
+import edu.unc.lib.dl.persist.services.event.PremisEventBuilderImpl;
 import edu.unc.lib.dl.rdf.Cdr;
 import edu.unc.lib.dl.rdf.CdrDeposit;
 import edu.unc.lib.dl.test.SelfReturningAnswer;
@@ -122,7 +122,7 @@ public class ExtractTechnicalMetadataJobTest extends AbstractDepositJobTest {
     private PremisLoggerFactory premisLoggerFactory;
     @Mock
     private PremisLogger premisLogger;
-    private PremisEventBuilder premisEventBuilder;
+    private PremisEventBuilderImpl premisEventBuilder;
 
     private ExtractTechnicalMetadataJob job;
 
@@ -143,7 +143,7 @@ public class ExtractTechnicalMetadataJobTest extends AbstractDepositJobTest {
         job.setBaseFitsUri(FITS_BASE_URI);
 
         // Setup logging dependencies
-        premisEventBuilder = mock(PremisEventBuilder.class, new SelfReturningAnswer());
+        premisEventBuilder = mock(PremisEventBuilderImpl.class, new SelfReturningAnswer());
         when(premisLoggerFactory.createPremisLogger(any(PID.class), any(File.class)))
                 .thenReturn(premisLogger);
         when(premisLogger.buildEvent(any(Resource.class))).thenReturn(premisEventBuilder);

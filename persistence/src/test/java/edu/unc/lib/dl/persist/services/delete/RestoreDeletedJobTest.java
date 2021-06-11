@@ -37,8 +37,6 @@ import edu.unc.lib.dl.acl.exception.AccessRestrictionException;
 import edu.unc.lib.dl.acl.service.AccessControlService;
 import edu.unc.lib.dl.acl.util.AccessGroupSet;
 import edu.unc.lib.dl.acl.util.AgentPrincipals;
-import edu.unc.lib.dl.event.PremisEventBuilder;
-import edu.unc.lib.dl.event.PremisLogger;
 import edu.unc.lib.dl.fcrepo4.AdminUnit;
 import edu.unc.lib.dl.fcrepo4.ContentObject;
 import edu.unc.lib.dl.fcrepo4.DepositRecord;
@@ -46,6 +44,8 @@ import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectLoader;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.model.InvalidOperationForObjectType;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
+import edu.unc.lib.dl.persist.services.event.PremisEventBuilderImpl;
 import edu.unc.lib.dl.rdf.Premis;
 import edu.unc.lib.dl.sparql.SparqlUpdateService;
 import edu.unc.lib.dl.test.SelfReturningAnswer;
@@ -74,7 +74,7 @@ public class RestoreDeletedJobTest {
     @Mock
     private AdminUnit repoObj;
 
-    private PremisEventBuilder eventBuilder;
+    private PremisEventBuilderImpl eventBuilder;
 
     private PID pid;
 
@@ -91,7 +91,7 @@ public class RestoreDeletedJobTest {
 
         when(contentObj.getMetadataUri()).thenReturn(URI.create(""));
 
-        eventBuilder = mock(PremisEventBuilder.class, new SelfReturningAnswer());
+        eventBuilder = mock(PremisEventBuilderImpl.class, new SelfReturningAnswer());
         when(contentObj.getPremisLog()).thenReturn(premisLogger);
         when(premisLogger.buildEvent(eq(Premis.Accession))).thenReturn(eventBuilder);
 

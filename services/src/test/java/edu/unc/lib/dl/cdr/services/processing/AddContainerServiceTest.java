@@ -48,8 +48,6 @@ import edu.unc.lib.dl.acl.service.AccessControlService;
 import edu.unc.lib.dl.acl.util.AccessGroupSet;
 import edu.unc.lib.dl.acl.util.AgentPrincipals;
 import edu.unc.lib.dl.cdr.services.processing.AddContainerService.AddContainerRequest;
-import edu.unc.lib.dl.event.PremisEventBuilder;
-import edu.unc.lib.dl.event.PremisLogger;
 import edu.unc.lib.dl.fcrepo4.CollectionObject;
 import edu.unc.lib.dl.fcrepo4.FedoraTransaction;
 import edu.unc.lib.dl.fcrepo4.FolderObject;
@@ -61,9 +59,11 @@ import edu.unc.lib.dl.fcrepo4.TransactionManager;
 import edu.unc.lib.dl.fcrepo4.WorkObject;
 import edu.unc.lib.dl.fedora.ObjectTypeMismatchException;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
 import edu.unc.lib.dl.persist.api.storage.StorageLocation;
 import edu.unc.lib.dl.persist.api.storage.StorageLocationManager;
 import edu.unc.lib.dl.persist.services.edit.UpdateDescriptionService;
+import edu.unc.lib.dl.persist.services.event.PremisEventBuilderImpl;
 import edu.unc.lib.dl.rdf.Cdr;
 import edu.unc.lib.dl.rdf.Premis;
 import edu.unc.lib.dl.services.OperationsMessageSender;
@@ -111,7 +111,7 @@ public class AddContainerServiceTest {
     @Captor
     private ArgumentCaptor<Model> modelCaptor;
 
-    private PremisEventBuilder eventBuilder;
+    private PremisEventBuilderImpl eventBuilder;
     private PID parentPid;
     private PID childPid;
     private AddContainerService service;
@@ -123,7 +123,7 @@ public class AddContainerServiceTest {
         when(agent.getPrincipals()).thenReturn(groups);
         when(agent.getUsername()).thenReturn("user");
 
-        eventBuilder = mock(PremisEventBuilder.class, new SelfReturningAnswer());
+        eventBuilder = mock(PremisEventBuilderImpl.class, new SelfReturningAnswer());
         when(premisLogger.buildEvent(eq(Premis.Creation))).thenReturn(eventBuilder);
 
         when(txManager.startTransaction()).thenReturn(tx);

@@ -34,10 +34,10 @@ import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 
-import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.exceptions.RepositoryException;
 import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.event.PremisLoggerFactory;
 
 /**
  * Service for transforming batches of PREMIS XML to RDF.

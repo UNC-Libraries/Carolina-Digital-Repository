@@ -21,10 +21,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import edu.unc.lib.dl.event.PremisLogger;
 import edu.unc.lib.dl.exceptions.RepositoryException;
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
 
 /**
  * Transformation service for batches of content object premis event logs

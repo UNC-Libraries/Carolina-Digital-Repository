@@ -52,7 +52,6 @@ import edu.unc.lib.dl.acl.fcrepo4.InheritedAclFactory;
 import edu.unc.lib.dl.acl.service.AccessControlService;
 import edu.unc.lib.dl.acl.util.AccessGroupSet;
 import edu.unc.lib.dl.acl.util.AgentPrincipals;
-import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.fcrepo4.AdminUnit;
 import edu.unc.lib.dl.fcrepo4.CollectionObject;
 import edu.unc.lib.dl.fcrepo4.ContentRootObject;
@@ -67,6 +66,7 @@ import edu.unc.lib.dl.persist.api.transfer.BinaryTransferService;
 import edu.unc.lib.dl.persist.services.delete.MarkForDeletionJob;
 import edu.unc.lib.dl.persist.services.destroy.DestroyObjectsJob;
 import edu.unc.lib.dl.persist.services.destroy.DestroyObjectsRequest;
+import edu.unc.lib.dl.persist.services.event.PremisLoggerFactoryImpl;
 import edu.unc.lib.dl.persist.services.storage.StorageLocationManagerImpl;
 import edu.unc.lib.dl.search.solr.model.ObjectPath;
 import edu.unc.lib.dl.search.solr.service.ObjectPathFactory;
@@ -118,7 +118,7 @@ public class DestroyDerivativesRouterIT {
     @Autowired
     private FedoraSparqlUpdateService sparqlUpdateService;
     @Autowired
-    private PremisLoggerFactory premisLoggerFactory;
+    private PremisLoggerFactoryImpl premisLoggerFactory;
     @Autowired
     private CamelContext cdrDestroyDerivatives;
     @Autowired

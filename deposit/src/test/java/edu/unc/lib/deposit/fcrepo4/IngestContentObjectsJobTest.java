@@ -71,9 +71,6 @@ import edu.unc.lib.dl.acl.exception.AccessRestrictionException;
 import edu.unc.lib.dl.acl.service.AccessControlService;
 import edu.unc.lib.dl.acl.util.AccessGroupSet;
 import edu.unc.lib.dl.acl.util.Permission;
-import edu.unc.lib.dl.event.PremisEventBuilder;
-import edu.unc.lib.dl.event.PremisLogger;
-import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.fcrepo4.AdminUnit;
 import edu.unc.lib.dl.fcrepo4.BinaryObject;
 import edu.unc.lib.dl.fcrepo4.CollectionObject;
@@ -91,6 +88,8 @@ import edu.unc.lib.dl.fcrepo4.WorkObject;
 import edu.unc.lib.dl.fedora.ChecksumMismatchException;
 import edu.unc.lib.dl.fedora.FedoraException;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
+import edu.unc.lib.dl.persist.api.event.PremisLoggerFactory;
 import edu.unc.lib.dl.persist.api.storage.StorageLocation;
 import edu.unc.lib.dl.persist.api.storage.StorageLocationManager;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferService;
@@ -98,6 +97,7 @@ import edu.unc.lib.dl.persist.api.transfer.BinaryTransferSession;
 import edu.unc.lib.dl.persist.services.deposit.DepositModelHelpers;
 import edu.unc.lib.dl.persist.services.edit.UpdateDescriptionService;
 import edu.unc.lib.dl.persist.services.edit.UpdateDescriptionService.UpdateDescriptionRequest;
+import edu.unc.lib.dl.persist.services.event.PremisEventBuilderImpl;
 import edu.unc.lib.dl.rdf.Cdr;
 import edu.unc.lib.dl.rdf.CdrAcl;
 import edu.unc.lib.dl.rdf.CdrDeposit;
@@ -145,7 +145,7 @@ public class IngestContentObjectsJobTest extends AbstractDepositJobTest {
     @Mock
     private PremisLogger mockPremisLogger;
 
-    private PremisEventBuilder mockPremisEventBuilder;
+    private PremisEventBuilderImpl mockPremisEventBuilder;
 
     @Mock
     private AccessControlService aclService;
@@ -210,7 +210,7 @@ public class IngestContentObjectsJobTest extends AbstractDepositJobTest {
         storageLocPath = tmpFolder.newFolder("storageLoc").toPath();
 
         // Setup logging dependencies
-        mockPremisEventBuilder = mock(PremisEventBuilder.class, new SelfReturningAnswer());
+        mockPremisEventBuilder = mock(PremisEventBuilderImpl.class, new SelfReturningAnswer());
         when(mockPremisLoggerFactory.createPremisLogger(any(PID.class), any(File.class)))
                 .thenReturn(mockPremisLogger);
         when(mockPremisLogger.buildEvent(any(Resource.class))).thenReturn(mockPremisEventBuilder);

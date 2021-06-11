@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package edu.unc.lib.dl.event;
+package edu.unc.lib.dl.persist.services.event;
 
 import static java.nio.file.Files.createTempFile;
 import static org.apache.commons.codec.binary.Hex.encodeHexString;
@@ -60,10 +60,13 @@ import edu.unc.lib.dl.fcrepo4.RepositoryObject;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.model.AgentPids;
 import edu.unc.lib.dl.model.DatastreamPids;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
 import edu.unc.lib.dl.persist.api.services.PidLockManager;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferOutcome;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferService;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferSession;
+import edu.unc.lib.dl.persist.services.event.PremisLoggerFactoryImpl;
+import edu.unc.lib.dl.persist.services.event.RepositoryPremisLogger;
 import edu.unc.lib.dl.rdf.Premis;
 import edu.unc.lib.dl.rdf.Prov;
 import edu.unc.lib.dl.util.DigestAlgorithm;
@@ -89,7 +92,7 @@ public class RepositoryPremisLoggerIT extends AbstractFedoraIT {
     @Mock
     private BinaryTransferSession mockSession;
     @Autowired
-    private PremisLoggerFactory premisLoggerFactory;
+    private PremisLoggerFactoryImpl premisLoggerFactory;
 
     @Before
     public void init() throws Exception {

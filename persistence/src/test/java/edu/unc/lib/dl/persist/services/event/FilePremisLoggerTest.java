@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package edu.unc.lib.dl.event;
+package edu.unc.lib.dl.persist.services.event;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -40,6 +40,10 @@ import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fcrepo4.RepositoryPathConstants;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.model.AgentPids;
+import edu.unc.lib.dl.persist.api.event.PremisEventBuilder;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
+import edu.unc.lib.dl.persist.services.event.FilePremisLogger;
+import edu.unc.lib.dl.persist.services.event.PremisEventBuilderImpl;
 import edu.unc.lib.dl.rdf.Premis;
 import edu.unc.lib.dl.rdf.Prov;
 import edu.unc.lib.dl.util.SoftwareAgentConstants.SoftwareAgent;
@@ -78,7 +82,7 @@ public class FilePremisLoggerTest extends AbstractFedoraTest {
         PremisEventBuilder builder = premis.buildEvent(null, eventType, date);
 
         assertTrue("Returned object is not a PremisLogger", premis instanceof PremisLogger);
-        assertTrue("Returned object is not a PremisEventBuilder", builder instanceof PremisEventBuilder);
+        assertTrue("Returned object is not a PremisEventBuilder", builder instanceof PremisEventBuilderImpl);
     }
 
     @Test

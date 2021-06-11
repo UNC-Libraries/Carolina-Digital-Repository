@@ -54,15 +54,8 @@
     <bean id="repositoryObjectDriver" class="edu.unc.lib.dl.fcrepo4.RepositoryObjectDriver">
         <property name="client" ref="fcrepoClient" />
         <property name="repositoryObjectLoader" ref="repositoryObjectLoader" />
-        <property name="premisLoggerFactory" ref="premisLoggerFactory" />
         <property name="pidMinter" ref="repositoryPIDMinter" />
         <property name="sparqlQueryService" ref="sparqlQueryService" />
-    </bean>
-    
-    <bean id="premisLoggerFactory" class="edu.unc.lib.dl.event.PremisLoggerFactory">
-        <property name="pidMinter" ref="repositoryPIDMinter" />
-        <property name="repoObjLoader" ref="repositoryObjectLoader" />
-        <property name="repoObjFactory" ref="repositoryObjectFactory" />
     </bean>
     
     <bean id="sparqlUpdateService" class="edu.unc.lib.dl.sparql.FedoraSparqlUpdateService">

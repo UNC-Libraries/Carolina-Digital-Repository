@@ -49,9 +49,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.event.PremisLoggerFactory;
+import edu.unc.lib.dl.persist.services.event.PremisLoggerFactoryImpl;
 import edu.unc.lib.dl.rdf.Premis;
 
 /**
@@ -74,7 +75,7 @@ public class TransformDepositPremisServiceTest {
     @Before
     public void setup() throws Exception {
         pidMinter = new RepositoryPIDMinter();
-        premisLoggerFactory = new PremisLoggerFactory();
+        premisLoggerFactory = new PremisLoggerFactoryImpl();
 
         outputPath = tmpFolder.newFolder("output").toPath();
         originalLogsPath = tmpFolder.newFolder("originals").toPath();

@@ -59,10 +59,10 @@ import org.slf4j.Logger;
 import edu.unc.lib.deposit.fcrepo4.AbstractDepositJobTest;
 import edu.unc.lib.deposit.work.JobFailedException;
 import edu.unc.lib.deposit.work.JobInterruptedException;
-import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.services.event.PremisLoggerFactoryImpl;
 import edu.unc.lib.dl.rdf.Cdr;
 import edu.unc.lib.dl.rdf.CdrDeposit;
 import edu.unc.lib.dl.rdf.Premis;
@@ -96,7 +96,7 @@ public class FixityCheckJobTest extends AbstractDepositJobTest {
     public void setup() throws Exception {
         pidMinter = new RepositoryPIDMinter();
 
-        premisLoggerFactory = new PremisLoggerFactory();
+        premisLoggerFactory = new PremisLoggerFactoryImpl();
         premisLoggerFactory.setPidMinter(pidMinter);
 
         initializeJob();

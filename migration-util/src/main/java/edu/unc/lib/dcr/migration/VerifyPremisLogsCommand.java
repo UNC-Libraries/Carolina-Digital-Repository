@@ -28,11 +28,12 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
-import edu.unc.lib.dl.event.PremisLogger;
-import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
+import edu.unc.lib.dl.persist.api.event.PremisLoggerFactory;
 import edu.unc.lib.dl.persist.services.deposit.DepositDirectoryManager;
+import edu.unc.lib.dl.persist.services.event.PremisLoggerFactoryImpl;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -68,7 +69,7 @@ public class VerifyPremisLogsCommand implements Callable<Integer> {
 
         DepositDirectoryManager depositDirectoryManager = new DepositDirectoryManager(
                 depositPid, parentCommand.depositBaseDir, hashNesting);
-        PremisLoggerFactory premisLoggerFactory = new PremisLoggerFactory();
+        PremisLoggerFactory premisLoggerFactory = new PremisLoggerFactoryImpl();
 
         AtomicBoolean errors = new AtomicBoolean();
         try (Stream<Path> fileStream = Files.walk(depositDirectoryManager.getEventsDir())) {

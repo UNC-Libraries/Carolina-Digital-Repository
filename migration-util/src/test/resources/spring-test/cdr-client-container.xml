@@ -71,7 +71,7 @@
         <property name="ingestSourceManager" ref="ingestSourceManager" />
     </bean>
     
-    <bean id="premisLoggerFactory" class="edu.unc.lib.dl.event.PremisLoggerFactory">
+    <bean id="premisLoggerFactory" class="edu.unc.lib.dl.persist.services.event.PremisLoggerFactoryImpl">
         <property name="pidMinter" ref="repositoryPIDMinter" />
         <property name="repoObjLoader" ref="repositoryObjectLoader" />
         <property name="repoObjFactory" ref="repositoryObjectFactory" />

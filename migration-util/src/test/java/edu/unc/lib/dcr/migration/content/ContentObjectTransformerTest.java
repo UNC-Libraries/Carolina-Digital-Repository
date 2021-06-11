@@ -88,7 +88,6 @@ import edu.unc.lib.dcr.migration.fcrepo3.DatastreamVersion;
 import edu.unc.lib.dcr.migration.fcrepo3.FoxmlDocumentBuilder;
 import edu.unc.lib.dcr.migration.paths.PathIndex;
 import edu.unc.lib.dl.acl.util.AccessPrincipalConstants;
-import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.fcrepo4.PIDs;
 import edu.unc.lib.dl.fcrepo4.RepositoryObject;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectLoader;
@@ -99,6 +98,7 @@ import edu.unc.lib.dl.model.DatastreamType;
 import edu.unc.lib.dl.persist.services.deposit.DepositDirectoryManager;
 import edu.unc.lib.dl.persist.services.deposit.DepositModelHelpers;
 import edu.unc.lib.dl.persist.services.deposit.DepositModelManager;
+import edu.unc.lib.dl.persist.services.event.PremisLoggerFactoryImpl;
 import edu.unc.lib.dl.persist.services.versioning.DatastreamHistoryLog;
 import edu.unc.lib.dl.rdf.Cdr;
 import edu.unc.lib.dl.rdf.CdrAcl;
@@ -141,7 +141,7 @@ public class ContentObjectTransformerTest {
 
     private RepositoryPIDMinter pidMinter;
 
-    private PremisLoggerFactory premisLoggerFactory;
+    private PremisLoggerFactoryImpl premisLoggerFactory;
 
     private ContentTransformationOptions options;
 
@@ -172,7 +172,7 @@ public class ContentObjectTransformerTest {
 
         originalDepositPid = pidMinter.mintDepositRecordPid();
 
-        premisLoggerFactory = new PremisLoggerFactory();
+        premisLoggerFactory = new PremisLoggerFactoryImpl();
         premisLoggerFactory.setPidMinter(pidMinter);
 
         options = new ContentTransformationOptions();

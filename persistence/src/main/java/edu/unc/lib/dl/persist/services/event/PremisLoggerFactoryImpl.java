@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package edu.unc.lib.dl.event;
+package edu.unc.lib.dl.persist.services.event;
 
 import java.io.File;
 
@@ -22,6 +22,8 @@ import edu.unc.lib.dl.fcrepo4.RepositoryObjectFactory;
 import edu.unc.lib.dl.fcrepo4.RepositoryObjectLoader;
 import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
 import edu.unc.lib.dl.fedora.PID;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
+import edu.unc.lib.dl.persist.api.event.PremisLoggerFactory;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferService;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferSession;
 
@@ -31,7 +33,7 @@ import edu.unc.lib.dl.persist.api.transfer.BinaryTransferSession;
  * @author harring
  */
 
-public class PremisLoggerFactory {
+public class PremisLoggerFactoryImpl implements PremisLoggerFactory {
 
     private RepositoryPIDMinter pidMinter;
     private RepositoryObjectLoader repoObjLoader;
@@ -46,6 +48,7 @@ public class PremisLoggerFactory {
      * @param file file where the event data is stored
      * @return new PremisLogger instance
      */
+    @Override
     public PremisLogger createPremisLogger(PID pid, File file) {
         return new FilePremisLogger(pid, file, pidMinter);
     }
@@ -56,6 +59,7 @@ public class PremisLoggerFactory {
      * @param repoObject subject of the logger
      * @return new PremisLogger instance
      */
+    @Override
     public PremisLogger createPremisLogger(RepositoryObject repoObject) {
         return createPremisLogger(repoObject, transferService.getSession(repoObject));
     }
@@ -67,6 +71,7 @@ public class PremisLoggerFactory {
      * @param session session the logger will use for transferring log data to storage
      * @return new PremisLogger instance
      */
+    @Override
     public PremisLogger createPremisLogger(RepositoryObject repoObject, BinaryTransferSession session) {
         return new RepositoryPremisLogger(repoObject, session, pidMinter, repoObjLoader, repoObjFactory);
     }

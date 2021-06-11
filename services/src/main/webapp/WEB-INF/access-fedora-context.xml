@@ -99,7 +99,7 @@
         <property name="client" ref="fcrepoClient" />
     </bean>
     
-    <bean id="premisLoggerFactory" class="edu.unc.lib.dl.event.PremisLoggerFactory">
+    <bean id="premisLoggerFactory" class="edu.unc.lib.dl.persist.services.event.PremisLoggerFactoryImpl">
         <property name="pidMinter" ref="pidMinter" />
         <property name="repoObjLoader" ref="repositoryObjectLoader" />
         <property name="repoObjFactory" ref="repositoryObjectFactory" />

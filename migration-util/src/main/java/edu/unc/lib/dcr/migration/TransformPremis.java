@@ -21,8 +21,9 @@ import java.util.concurrent.Callable;
 import edu.unc.lib.dcr.migration.premis.PremisTransformationService;
 import edu.unc.lib.dcr.migration.premis.TransformContentPremisService;
 import edu.unc.lib.dcr.migration.premis.TransformDepositPremisService;
-import edu.unc.lib.dl.event.PremisLoggerFactory;
 import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
+import edu.unc.lib.dl.persist.api.event.PremisLoggerFactory;
+import edu.unc.lib.dl.persist.services.event.PremisLoggerFactoryImpl;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -54,7 +55,7 @@ public class TransformPremis implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        PremisLoggerFactory premisLoggerFactory = new PremisLoggerFactory();
+        PremisLoggerFactory premisLoggerFactory = new PremisLoggerFactoryImpl();
         RepositoryPIDMinter pidMinter = new RepositoryPIDMinter();
 
         PremisTransformationService transformationService;

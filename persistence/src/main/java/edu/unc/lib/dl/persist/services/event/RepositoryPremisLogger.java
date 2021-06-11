@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package edu.unc.lib.dl.event;
+package edu.unc.lib.dl.persist.services.event;
 
 import static edu.unc.lib.dl.model.DatastreamPids.getMdEventsPid;
 import static edu.unc.lib.dl.model.DatastreamType.MD_EVENTS;
@@ -45,6 +45,8 @@ import edu.unc.lib.dl.fcrepo4.RepositoryPIDMinter;
 import edu.unc.lib.dl.fedora.NotFoundException;
 import edu.unc.lib.dl.fedora.PID;
 import edu.unc.lib.dl.model.DatastreamPids;
+import edu.unc.lib.dl.persist.api.event.PremisEventBuilder;
+import edu.unc.lib.dl.persist.api.event.PremisLogger;
 import edu.unc.lib.dl.persist.api.services.PidLockManager;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferOutcome;
 import edu.unc.lib.dl.persist.api.transfer.BinaryTransferSession;
@@ -85,7 +87,7 @@ public class RepositoryPremisLogger implements PremisLogger {
     }
 
     @Override
-    public PremisEventBuilder buildEvent(PID eventPid, Resource eventType, Date date) {
+    public PremisEventBuilderImpl buildEvent(PID eventPid, Resource eventType, Date date) {
         if (eventPid == null) {
             eventPid = pidMinter.mintPremisEventPid(repoObject.getPid());
         }
@@ -93,7 +95,7 @@ public class RepositoryPremisLogger implements PremisLogger {
             date = new Date();
         }
 
-        return new PremisEventBuilder(repoObject.getPid(), eventPid, eventType, date, this);
+        return new PremisEventBuilderImpl(repoObject.getPid(), eventPid, eventType, date, this);
     }
 
     @Override
