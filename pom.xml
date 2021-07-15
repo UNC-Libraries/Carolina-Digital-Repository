@@ -125,7 +125,7 @@
         
         <jedis.version>2.9.3</jedis.version>
         <embedded-redis.version>0.7.3</embedded-redis.version>
-        <solr.version>8.5.2</solr.version>
+        <solr.version>8.8.2</solr.version>
         <metrics.version>5.0.0</metrics.version>
         <jena.version>3.17.0</jena.version>
         <jena.fuseki.version>3.17.0</jena.fuseki.version>
