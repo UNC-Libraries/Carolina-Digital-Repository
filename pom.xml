@@ -72,7 +72,7 @@
         
         <junit.version>4.13.1</junit.version>
         <grizzly.version>2.4.4</grizzly.version>
-        <jersey.version>2.32</jersey.version>
+        <jersey.version>2.34</jersey.version>
         <mockito.version>1.10.19</mockito.version>
         <fcrepo.client.version>5.0.0</fcrepo.client.version>
         <mock.server.version>5.4.1</mock.server.version>
